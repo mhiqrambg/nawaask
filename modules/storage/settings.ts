@@ -1,3 +1,5 @@
+import type { NawaAskMode } from "@/modules/cloud/types";
+
 export type ThemeMode = "light" | "dark" | "system";
 
 export interface AppSettings {
@@ -10,6 +12,8 @@ export interface AppSettings {
   includePageContext: boolean;
   contextCharLimit: number;
   theme: ThemeMode;
+  /** Operating mode. BYOK is default; cloud stays unavailable until configured. */
+  mode: NawaAskMode;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -22,6 +26,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   includePageContext: true,
   contextCharLimit: 12000,
   theme: "system",
+  mode: "byok",
 };
 
 const SETTINGS_KEY = "nawa:settings";

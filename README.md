@@ -22,6 +22,30 @@ select `.output/chrome-mv3/`.
 
 Other commands: `bun run compile` (typecheck), `bun run zip` (store package).
 
+## Optional cloud backend (Hono + Cloudflare Workers)
+
+The extension works fully without it (BYOK default). The backend currently
+exposes only `GET /health`, `GET /api/v1/health`, `GET /api/v1/meta` —
+all cloud features are capability-flagged off.
+
+```bash
+cd backend
+bun install
+bun test            # 8 unit tests
+bun run dev         # wrangler dev → http://localhost:8787
+bun run deploy      # wrangler deploy
+```
+
+Point a build at it (empty = BYOK-only):
+
+```bash
+VITE_NAWAASK_CLOUD_API_BASE_URL=https://<worker> bun run build
+```
+
+Details: `docs/ARCHITECTURE.md`, `docs/CLOUD_ARCHITECTURE.md`,
+`docs/DEPLOYMENT_CLOUDFLARE.md`, `docs/PRIVACY.md`, `docs/SECURITY.md`,
+`docs/RELEASE.md`.
+
 ## Configure a provider
 
 1. Open the side panel → gear icon, or extension Options page.

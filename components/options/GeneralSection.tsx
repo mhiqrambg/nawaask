@@ -5,6 +5,7 @@ import {
   defaultProviderId,
   defaultModelId,
 } from "@/composables/useProviders";
+import CloudSection from "./CloudSection";
 import type { JSX } from "preact";
 
 export default function GeneralSection() {
@@ -128,6 +129,13 @@ export default function GeneralSection() {
             }
           />
         </label>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <h2 class="text-[12px] uppercase tracking-wide text-[rgb(var(--color-muted))]">
+          Operating mode
+        </h2>
+        <CloudSection />
       </div>
 
       <div class="flex flex-col gap-2">

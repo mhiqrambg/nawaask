@@ -1,0 +1,11 @@
+# Local development secrets ONLY. Never commit real values.
+# Copy to backend/.dev.vars (gitignored) for `wrangler dev`.
+# Production: use `wrangler secret put <NAME>` instead.
+
+# Comma-separated CORS allowlist for local dev, e.g. unpacked extension origin.
+# Find it at chrome://extensions after loading unpacked (the ID under the name).
+# ALLOWED_ORIGINS="chrome-extension://<dev-extension-id>"
+
+# Future server-side credentials (do NOT create until the gateway ships):
+# NAWAASK_PROVIDER_API_KEY=""
+# NAWAASK_JWT_SECRET=""

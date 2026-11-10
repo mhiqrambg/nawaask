@@ -4,5 +4,6 @@
     "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "jsxImportSource": "preact"
-  }
+  },
+  "exclude": ["backend", "**/node_modules", ".output", "backend/node_modules"]
 }
