@@ -13,12 +13,51 @@ import {
 } from "@/composables/useProviders";
 import { protocolOf } from "@/modules/ai/protocol";
 import { setSettingsOpen } from "@/composables/useView";
-import { IconClose, IconPlus } from "@/components/ui/icons";
-import type { AIProvider, ProviderApi, ProviderProtocol } from "@/modules/ai/types";
+import { LoaderCircle, Plus, X } from "lucide-preact";
+import type {
+  AIProvider,
+  ProviderApi,
+  ProviderProtocol,
+} from "@/modules/ai/types";
 
 const testStatus = signal<Record<string, string>>({});
+const busy = signal<Record<string, "test" | "refresh">>({});
 
-function setProviderField(provider: AIProvider, patch: Partial<AIProvider>): void {
+function setBusy(id: string, kind: "test" | "refresh" | null): void {
+  const next = { ...busy.value };
+  if (kind) next[id] = kind;
+  else delete next[id];
+  busy.value = next;
+}
+
+function runTest(p: AIProvider): void {
+  setBusy(p.id, "test");
+  void testProvider(p)
+    .then((msg) => {
+      testStatus.value = { ...testStatus.value, [p.id]: msg };
+    })
+    .catch((err: Error) => {
+      testStatus.value = { ...testStatus.value, [p.id]: `Error: ${err.message}` };
+    })
+    .finally(() => setBusy(p.id, null));
+}
+
+function runRefresh(p: AIProvider): void {
+  setBusy(p.id, "refresh");
+  void refreshModels(p.id)
+    .then((ids) => {
+      testStatus.value = { ...testStatus.value, [p.id]: `Loaded ${ids.length} models` };
+    })
+    .catch((err: Error) => {
+      testStatus.value = { ...testStatus.value, [p.id]: `Error: ${err.message}` };
+    })
+    .finally(() => setBusy(p.id, null));
+}
+
+function setProviderField(
+  provider: AIProvider,
+  patch: Partial<AIProvider>,
+): void {
   void updateProvider({ ...provider, ...patch });
 }
 
@@ -26,14 +65,20 @@ function ProviderCard({ provider }: { provider: AIProvider }) {
   const p = provider;
   const protocol = protocolOf(p);
   return (
-    <div key={p.id} class="rounded-xl border border-[rgb(var(--color-border))] p-2.5">
+    <div
+      key={p.id}
+      class="rounded-xl border border-[rgb(var(--color-border))] p-2.5"
+    >
       <div class="flex items-center justify-between pb-2">
         <label class="flex items-center gap-2 text-[12.5px] font-medium">
           <input
             type="checkbox"
             checked={p.enabled}
             onChange={(e) => {
-              void toggleProviderEnabled(p.id, (e.currentTarget as HTMLInputElement).checked);
+              void toggleProviderEnabled(
+                p.id,
+                (e.currentTarget as HTMLInputElement).checked,
+              );
             }}
           />
           {p.name}
@@ -57,7 +102,8 @@ function ProviderCard({ provider }: { provider: AIProvider }) {
           class="w-full rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2 py-1 text-[12px]"
           value={protocol}
           onChange={(e) => {
-            const next = (e.currentTarget as HTMLSelectElement).value as ProviderProtocol;
+            const next = (e.currentTarget as HTMLSelectElement)
+              .value as ProviderProtocol;
             applyProtocol(p, next);
           }}
         >
@@ -73,7 +119,8 @@ function ProviderCard({ provider }: { provider: AIProvider }) {
             value={p.api ?? "chat-completions"}
             onChange={(e) => {
               setProviderField(p, {
-                api: (e.currentTarget as HTMLSelectElement).value as ProviderApi,
+                api: (e.currentTarget as HTMLSelectElement)
+                  .value as ProviderApi,
               });
             }}
           >
@@ -112,42 +159,21 @@ function ProviderCard({ provider }: { provider: AIProvider }) {
       <div class="flex items-center gap-1.5 pt-1">
         <button
           type="button"
-          class="rounded border border-[rgb(var(--color-border))] px-2 py-1 text-[11px] hover:border-[rgb(var(--color-accent))]"
-          onClick={() => {
-            void testProvider(p)
-              .then((msg) => {
-                testStatus.value = { ...testStatus.value, [p.id]: msg };
-              })
-              .catch((err: Error) => {
-                testStatus.value = {
-                  ...testStatus.value,
-                  [p.id]: `Error: ${err.message}`,
-                };
-              });
-          }}
+          class="flex items-center gap-1 rounded border border-[rgb(var(--color-border))] px-2 py-1 text-[11px] hover:border-[rgb(var(--color-accent))] disabled:opacity-60"
+          disabled={busy.value[p.id] !== undefined}
+          onClick={() => runTest(p)}
         >
-          Test
+          {busy.value[p.id] === "test" && <LoaderCircle size={12} class="animate-spin" />}
+          {busy.value[p.id] === "test" ? "Testing…" : "Test"}
         </button>
         <button
           type="button"
-          class="rounded border border-[rgb(var(--color-border))] px-2 py-1 text-[11px] hover:border-[rgb(var(--color-accent))]"
-          onClick={() => {
-            void refreshModels(p.id)
-              .then((ids) => {
-                testStatus.value = {
-                  ...testStatus.value,
-                  [p.id]: `Loaded ${ids.length} models`,
-                };
-              })
-              .catch((err: Error) => {
-                testStatus.value = {
-                  ...testStatus.value,
-                  [p.id]: `Error: ${err.message}`,
-                };
-              });
-          }}
+          class="flex items-center gap-1 rounded border border-[rgb(var(--color-border))] px-2 py-1 text-[11px] hover:border-[rgb(var(--color-accent))] disabled:opacity-60"
+          disabled={busy.value[p.id] !== undefined}
+          onClick={() => runRefresh(p)}
         >
-          Refresh models
+          {busy.value[p.id] === "refresh" && <LoaderCircle size={12} class="animate-spin" />}
+          {busy.value[p.id] === "refresh" ? "Loading…" : "Refresh"}
         </button>
         {testStatus.value[p.id] && (
           <span class="text-[10.5px] text-[rgb(var(--color-muted))]">
@@ -160,16 +186,12 @@ function ProviderCard({ provider }: { provider: AIProvider }) {
 }
 
 function applyProtocol(p: AIProvider, next: ProviderProtocol): void {
-  const hint =
-    next === "anthropic" ? "https://api.anthropic.com/v1" : "https://api.example.com/v1";
-  setProviderField(p, {
-    protocol: next,
-    baseUrl: p.baseUrl === "" || p.baseUrl === "https://api.example.com/v1" ? hint : p.baseUrl,
-  });
+  // Leave Base URL untouched: overwriting it would mark a fresh card as
+  // configured and re-enable the New button. The hint shows per protocol.
+  setProviderField(p, { protocol: next });
 }
 
 export default function SettingsPanel() {
-
   return (
     <div class="flex h-full flex-col">
       <header class="flex items-center justify-between border-b border-[rgb(var(--color-border))] px-3 py-2">
@@ -180,14 +202,16 @@ export default function SettingsPanel() {
           aria-label="Close settings"
           onClick={() => setSettingsOpen(false)}
         >
-          <IconClose />
+          <X size={16} />
         </button>
       </header>
 
       <div class="flex-1 overflow-y-auto px-3 py-3 flex flex-col gap-4 text-[12.5px]">
         {/* Appearance */}
         <section class="flex flex-col gap-1.5">
-          <h3 class="text-[11px] uppercase tracking-wide text-[rgb(var(--color-muted))]">Appearance</h3>
+          <h3 class="text-[11px] uppercase tracking-wide text-[rgb(var(--color-muted))]">
+            Appearance
+          </h3>
           <div class="flex gap-1">
             {(["light", "dark", "system"] as const).map((mode) => (
               <button
@@ -208,14 +232,18 @@ export default function SettingsPanel() {
 
         {/* General */}
         <section class="flex flex-col gap-2">
-          <h3 class="text-[11px] uppercase tracking-wide text-[rgb(var(--color-muted))]">General</h3>
+          <h3 class="text-[11px] uppercase tracking-wide text-[rgb(var(--color-muted))]">
+            General
+          </h3>
           <label class="flex items-center justify-between">
             <span>Enter to send</span>
             <input
               type="checkbox"
               checked={settings.value.enterToSend}
               onChange={(e) => {
-                void updateSettings({ enterToSend: (e.currentTarget as HTMLInputElement).checked });
+                void updateSettings({
+                  enterToSend: (e.currentTarget as HTMLInputElement).checked,
+                });
               }}
             />
           </label>
@@ -225,7 +253,9 @@ export default function SettingsPanel() {
               type="checkbox"
               checked={settings.value.autoScroll}
               onChange={(e) => {
-                void updateSettings({ autoScroll: (e.currentTarget as HTMLInputElement).checked });
+                void updateSettings({
+                  autoScroll: (e.currentTarget as HTMLInputElement).checked,
+                });
               }}
             />
           </label>
@@ -236,7 +266,8 @@ export default function SettingsPanel() {
               checked={settings.value.showFloatingToolbar}
               onChange={(e) => {
                 void updateSettings({
-                  showFloatingToolbar: (e.currentTarget as HTMLInputElement).checked,
+                  showFloatingToolbar: (e.currentTarget as HTMLInputElement)
+                    .checked,
                 });
               }}
             />
@@ -260,7 +291,7 @@ export default function SettingsPanel() {
               }
               onClick={() => void addProvider(newCustomProvider())}
             >
-              <IconPlus size={12} />
+              <Plus size={12} />
               New
             </button>
           </div>
@@ -290,7 +321,8 @@ export default function SettingsPanel() {
         </section>
 
         <p class="text-[10.5px] text-[rgb(var(--color-muted))]">
-          API keys are stored in extension storage on this device only. Never sent to us.
+          API keys are stored in extension storage on this device only. Never
+          sent to us.
         </p>
       </div>
     </div>

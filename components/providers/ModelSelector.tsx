@@ -2,7 +2,7 @@ import { modelSelectorOpen } from "@/composables/useModelSelector";
 import { providers, setDefault, defaultProviderId, defaultModelId } from "@/composables/useProviders";
 import { currentModel } from "@/composables/useChat";
 import { setSettingsOpen } from "@/composables/useView";
-import { IconClose } from "@/components/ui/icons";
+import { X } from "lucide-preact";
 import type { JSX } from "preact";
 
 export default function ModelSelector() {
@@ -33,7 +33,7 @@ export default function ModelSelector() {
               modelSelectorOpen.value = false;
             }}
           >
-            <IconClose />
+            <X size={16} />
           </button>
         </div>
 

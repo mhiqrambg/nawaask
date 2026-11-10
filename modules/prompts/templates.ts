@@ -3,7 +3,6 @@ import type { SelectionActionId } from "@/modules/browser/messaging";
 export interface PromptTemplate {
   id: string;
   name: string;
-  icon: string;
   template: string;
   builtin: boolean;
 }
@@ -13,7 +12,6 @@ export const BUILTIN_PROMPTS: PromptTemplate[] = [
   {
     id: "explain-selection",
     name: "Explain",
-    icon: "💡",
     template:
       "Explain the following in simple, clear terms. Use short paragraphs or bullets when helpful.\n\nContext: {{title}}\n\n{{selection}}",
     builtin: true,
@@ -21,14 +19,12 @@ export const BUILTIN_PROMPTS: PromptTemplate[] = [
   {
     id: "summarize-selection",
     name: "Summarize",
-    icon: "📝",
     template: "Summarize the following in 3-5 concise bullet points.\n\n{{selection}}",
     builtin: true,
   },
   {
     id: "translate-selection",
     name: "Translate",
-    icon: "🌐",
     template:
       "Translate the following text into English. Preserve tone and technical terms.\n\n{{selection}}",
     builtin: true,
@@ -36,7 +32,6 @@ export const BUILTIN_PROMPTS: PromptTemplate[] = [
   {
     id: "rewrite-selection",
     name: "Rewrite",
-    icon: "✏️",
     template:
       "Rewrite the following text to be clearer, more concise, and grammatically correct. Keep the original meaning.\n\n{{selection}}",
     builtin: true,
@@ -44,7 +39,6 @@ export const BUILTIN_PROMPTS: PromptTemplate[] = [
   {
     id: "ask-selection",
     name: "Ask AI",
-    icon: "💬",
     template:
       "I selected this text from a webpage ({{title}}). Answer any implicit question about it and give helpful context.\n\n{{selection}}",
     builtin: true,
@@ -52,7 +46,6 @@ export const BUILTIN_PROMPTS: PromptTemplate[] = [
   {
     id: "explain-code",
     name: "Explain Code",
-    icon: "🧑‍💻",
     template:
       "Explain what this code does step by step. Point out bugs, edge cases, and possible improvements.\n\n{{selection}}",
     builtin: true,
@@ -60,7 +53,6 @@ export const BUILTIN_PROMPTS: PromptTemplate[] = [
   {
     id: "review-code",
     name: "Review Code",
-    icon: "🔍",
     template:
       "Act as a senior engineer reviewing this code. List concrete issues (correctness, performance, security, readability) with suggested fixes.\n\n{{selection}}",
     builtin: true,
@@ -68,7 +60,6 @@ export const BUILTIN_PROMPTS: PromptTemplate[] = [
   {
     id: "fix-grammar",
     name: "Fix Grammar",
-    icon: "✅",
     template:
       "Fix grammar, spelling and punctuation in the following text. Return only the corrected text.\n\n{{selection}}",
     builtin: true,
@@ -76,7 +67,6 @@ export const BUILTIN_PROMPTS: PromptTemplate[] = [
   {
     id: "generate-ideas",
     name: "Generate Ideas",
-    icon: "🌱",
     template:
       "Generate 8 diverse, actionable ideas related to the following. Group them by category.\n\n{{selection}}",
     builtin: true,
@@ -84,7 +74,6 @@ export const BUILTIN_PROMPTS: PromptTemplate[] = [
   {
     id: "summarize-page",
     name: "Summarize Page",
-    icon: "📄",
     template:
       "Summarize the current webpage ({{title}}). Give a 5-bullet summary of the main points, then list key takeaways.\n\n{{page}}",
     builtin: true,
@@ -92,7 +81,6 @@ export const BUILTIN_PROMPTS: PromptTemplate[] = [
   {
     id: "explain-page",
     name: "Explain Page",
-    icon: "ℹ️",
     template:
       "Explain the main content of this webpage ({{title}}). Cover what it is about, key arguments or steps, and why it matters.\n\n{{page}}",
     builtin: true,

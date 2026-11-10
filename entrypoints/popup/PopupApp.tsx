@@ -1,4 +1,4 @@
-import { IconLogo } from "@/components/ui/icons";
+import { IconLogo } from "@/components/ui/Logo";
 
 async function openSidePanel(): Promise<void> {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });

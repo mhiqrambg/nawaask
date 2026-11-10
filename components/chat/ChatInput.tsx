@@ -1,5 +1,5 @@
 import { signal } from "@preact/signals";
-import { IconSend, IconStop, IconPaperclip } from "@/components/ui/icons";
+import { Paperclip, Send, Square } from "lucide-preact";
 import { settings } from "@/composables/useSettings";
 import type { JSX } from "preact";
 
@@ -36,7 +36,7 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
           aria-label="Attach file"
           disabled
         >
-          <IconPaperclip />
+          <Paperclip size={18} />
         </button>
         <textarea
           class="flex-1 resize-none bg-transparent text-[13.5px] outline-none placeholder:text-[rgb(var(--color-muted))]"
@@ -57,7 +57,7 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
             aria-label="Stop generating"
             onClick={onStop}
           >
-            <IconStop />
+            <Square size={18} />
           </button>
         ) : (
           <button
@@ -68,13 +68,13 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
             onClick={() => submit(onSend)}
             disabled={draft.value.trim().length === 0}
           >
-            <IconSend />
+            <Send size={18} />
           </button>
         )}
       </div>
-      <p class="mt-1 text-[10.5px] text-[rgb(var(--color-muted))]">
-        Enter to send · Shift+Enter for new line
-      </p>
+      {streaming && (
+        <p class="mt-1 text-[10.5px] text-[rgb(var(--color-muted))]">Generating…</p>
+      )}
     </div>
   ) as JSX.Element;
 }

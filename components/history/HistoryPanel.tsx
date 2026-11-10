@@ -1,4 +1,5 @@
 import { signal } from "@preact/signals";
+import { Pin } from "lucide-preact";
 import {
   historyMeta,
   loadConversation,
@@ -76,8 +77,8 @@ export default function HistoryPanel() {
                 class="block w-full text-left"
                 onClick={() => void loadConversation(meta.id)}
               >
-                <p class="text-[13px] font-medium">
-                  {meta.pinned ? "📌 " : ""}
+                <p class="flex items-center gap-1 text-[13px] font-medium">
+                  {meta.pinned && <Pin size={12} aria-label="Pinned" />}
                   {meta.title}
                 </p>
                 <p class="mt-0.5 text-[11px] text-[rgb(var(--color-muted))]">

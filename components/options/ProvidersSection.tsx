@@ -15,12 +15,20 @@ import {
 } from "@/composables/useProviders";
 import { protocolOf } from "@/modules/ai/protocol";
 import type { AIProvider, ProviderApi, ProviderProtocol } from "@/modules/ai/types";
-import { IconPlus } from "@/components/ui/icons";
+import { LoaderCircle, Plus } from "lucide-preact";
 
 const status = signal<Record<string, string>>({});
+const busy = signal<Record<string, "test" | "refresh">>({});
 
 function setStatus(id: string, msg: string): void {
   status.value = { ...status.value, [id]: msg };
+}
+
+function setBusy(id: string, kind: "test" | "refresh" | null): void {
+  const next = { ...busy.value };
+  if (kind) next[id] = kind;
+  else delete next[id];
+  busy.value = next;
 }
 
 function patch(provider: AIProvider, partial: Partial<AIProvider>): void {
@@ -28,15 +36,19 @@ function patch(provider: AIProvider, partial: Partial<AIProvider>): void {
 }
 
 function runTest(p: AIProvider): void {
+  setBusy(p.id, "test");
   void testProvider(p)
     .then((msg) => setStatus(p.id, msg))
-    .catch((err: Error) => setStatus(p.id, `Error: ${err.message}`));
+    .catch((err: Error) => setStatus(p.id, `Error: ${err.message}`))
+    .finally(() => setBusy(p.id, null));
 }
 
 function runRefresh(p: AIProvider): void {
+  setBusy(p.id, "refresh");
   void refreshModels(p.id)
     .then((ids) => setStatus(p.id, `Loaded ${ids.length} models`))
-    .catch((err: Error) => setStatus(p.id, `Error: ${err.message}`));
+    .catch((err: Error) => setStatus(p.id, `Error: ${err.message}`))
+    .finally(() => setBusy(p.id, null));
 }
 
 function addModel(p: AIProvider): void {
@@ -100,12 +112,8 @@ function ProviderCard({ provider }: { provider: AIProvider }) {
             value={protocol}
             onChange={(e) => {
               const next = (e.currentTarget as HTMLSelectElement).value as ProviderProtocol;
-              const hint = PROTOCOLS.find((pr) => pr.id === next)?.hint ?? "";
-              patch(p, {
-                protocol: next,
-                baseUrl:
-                  p.baseUrl === "" || p.baseUrl === "https://api.example.com/v1" ? hint : p.baseUrl,
-              });
+              // Base URL stays untouched so a fresh card keeps the New button disabled.
+              patch(p, { protocol: next });
             }}
           >
             {PROTOCOLS.map((pr) => (
@@ -186,17 +194,21 @@ function ProviderCard({ provider }: { provider: AIProvider }) {
           </button>
           <button
             type="button"
-            class="rounded border border-[rgb(var(--color-border))] px-2 py-1 hover:border-[rgb(var(--color-accent))]"
+            class="flex items-center gap-1 rounded border border-[rgb(var(--color-border))] px-2 py-1 hover:border-[rgb(var(--color-accent))] disabled:opacity-60"
+            disabled={busy.value[p.id] !== undefined}
             onClick={() => runRefresh(p)}
           >
-            Fetch from API
+            {busy.value[p.id] === "refresh" && <LoaderCircle size={12} class="animate-spin" />}
+            {busy.value[p.id] === "refresh" ? "Loading…" : "Fetch from API"}
           </button>
           <button
             type="button"
-            class="rounded border border-[rgb(var(--color-border))] px-2 py-1 hover:border-[rgb(var(--color-accent))]"
+            class="flex items-center gap-1 rounded border border-[rgb(var(--color-border))] px-2 py-1 hover:border-[rgb(var(--color-accent))] disabled:opacity-60"
+            disabled={busy.value[p.id] !== undefined}
             onClick={() => runTest(p)}
           >
-            Test connection
+            {busy.value[p.id] === "test" && <LoaderCircle size={12} class="animate-spin" />}
+            {busy.value[p.id] === "test" ? "Testing…" : "Test connection"}
           </button>
         </div>
         {status.value[p.id] && (
@@ -226,7 +238,7 @@ export default function ProvidersSection() {
           }
           onClick={() => void addProvider(newCustomProvider())}
         >
-          <IconPlus size={12} />
+          <Plus size={12} />
           New custom
         </button>
       </div>

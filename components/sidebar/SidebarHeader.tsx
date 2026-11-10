@@ -1,4 +1,5 @@
-import { IconLogo, IconPlus, IconSettings } from "@/components/ui/icons";
+import { Plus, Settings } from "lucide-preact";
+import { IconLogo } from "@/components/ui/Logo";
 import { startNewChat } from "@/composables/useChat";
 import { setSettingsOpen, view, setView } from "@/composables/useView";
 
@@ -24,7 +25,7 @@ export default function SidebarHeader() {
           aria-label="New chat"
           onClick={() => void startNewChat()}
         >
-          <IconPlus />
+          <Plus size={18} />
         </button>
         <button
           type="button"
@@ -33,7 +34,7 @@ export default function SidebarHeader() {
           aria-label="Settings"
           onClick={() => setSettingsOpen(true)}
         >
-          <IconSettings />
+          <Settings size={18} />
         </button>
       </div>
     </header>

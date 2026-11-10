@@ -6,6 +6,7 @@
       "name": "wxt-react-starter",
       "dependencies": {
         "@preact/signals": "^2.11.4",
+        "lucide-preact": "^1.71.0",
         "preact": "^11.2.0",
       },
       "devDependencies": {
@@ -711,6 +712,8 @@
     "lodash.once": ["lodash.once@4.1.1", "", {}, "sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg=="],
 
     "lru-cache": ["lru-cache@5.1.1", "", { "dependencies": { "yallist": "^3.0.2" } }, "sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w=="],
+
+    "lucide-preact": ["lucide-preact@1.71.0", "", { "peerDependencies": { "preact": "^10.27.2 || ^11.0.0-0" } }, "sha512-idQfTFnMYz3YW7uqnNLTF/ijOk14EmfehVzgQGafFn+szuoUzJIDK/tPv6EBvA8uWrJ0k0epBTLesqK3DN8ZPA=="],
 
     "magic-string": ["magic-string@0.30.21", "", { "dependencies": { "@jridgewell/sourcemap-codec": "^1.5.5" } }, "sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ=="],
 

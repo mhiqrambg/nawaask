@@ -31,7 +31,6 @@ export function newCustomPrompt(): PromptTemplate {
   return {
     id: crypto.randomUUID(),
     name: "New Prompt",
-    icon: "✨",
     template: "{{selection}}",
     builtin: false,
   };

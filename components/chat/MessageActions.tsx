@@ -1,5 +1,5 @@
 import { signal } from "@preact/signals";
-import { IconCopy, IconRefresh } from "@/components/ui/icons";
+import { Copy, RefreshCw } from "lucide-preact";
 import type { JSX } from "preact";
 
 interface Props {
@@ -33,7 +33,7 @@ export default function MessageActions({ content, onRegenerate }: Props) {
         aria-label="Copy response"
         onClick={() => copy(content)}
       >
-        <IconCopy />
+        <Copy size={16} />
       </button>
       <button
         type="button"
@@ -42,7 +42,7 @@ export default function MessageActions({ content, onRegenerate }: Props) {
         aria-label="Regenerate response"
         onClick={onRegenerate}
       >
-        <IconRefresh />
+        <RefreshCw size={16} />
       </button>
       {copied.value && (
         <span class="text-[11px] opacity-70" role="status">

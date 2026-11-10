@@ -18,7 +18,7 @@ import { setSettingsOpen } from "@/composables/useView";
 import { settings } from "@/composables/useSettings";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
-import { IconPlus, IconSettings } from "@/components/ui/icons";
+import { Plus, Settings } from "lucide-preact";
 import type { JSX } from "preact";
 
 export default function ChatContainer() {
@@ -44,7 +44,7 @@ export default function ChatContainer() {
             aria-label="New chat"
             onClick={() => void startNewChat()}
           >
-            <IconPlus />
+            <Plus size={18} />
           </button>
           <button
             type="button"
@@ -53,7 +53,7 @@ export default function ChatContainer() {
             aria-label="Settings"
             onClick={() => setSettingsOpen(true)}
           >
-            <IconSettings />
+            <Settings size={18} />
           </button>
         </div>
       </header>
@@ -69,8 +69,8 @@ export default function ChatContainer() {
                 class="rounded-xl border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-3 py-2.5 text-left hover:border-[rgb(var(--color-accent))]"
                 onClick={() => onPrompt(p.prompt)}
               >
-                <span class="mr-2" aria-hidden="true">
-                  {p.icon}
+                <span class="mr-2 inline-flex align-middle" aria-hidden="true">
+                  <p.icon size={14} />
                 </span>
                 <span class="text-[13px] font-medium">{p.title}</span>
               </button>

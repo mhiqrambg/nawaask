@@ -93,7 +93,7 @@ export default function PromptsSection() {
               }}
             >
               <p class="text-[13px] font-medium">
-                {p.icon} {p.name}
+                {p.name}
               </p>
               <p class="mt-0.5 text-[11px] text-[rgb(var(--color-muted))]" title={p.template}>
                 {p.template.slice(0, 90)}…
@@ -116,7 +116,7 @@ export default function PromptsSection() {
               }}
             >
               <p class="text-[13px] font-medium">
-                {p.icon} {p.name}
+                {p.name}
               </p>
               <p class="mt-0.5 text-[11px] text-[rgb(var(--color-muted))]" title={p.template}>
                 {p.template.slice(0, 90)}…
