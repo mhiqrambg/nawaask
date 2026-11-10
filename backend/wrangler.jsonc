@@ -18,8 +18,8 @@
   "vars": {
     "APP_ENV": "development",
     "API_VERSION": "v1",
-    "ALLOWED_ORIGINS": ""
-  }
+    "ALLOWED_ORIGINS": "kdcjedhlpbfojibibmhbjhaklgomafbb",
+  },
   // "d1_databases": [
   //   { "binding": "DB", "database_name": "nawaask-db", "database_id": "<paste-after-create>" }
   // ],

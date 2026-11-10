@@ -2,14 +2,26 @@ import { signal } from "@preact/signals";
 import type { AIProvider, AIModel } from "@/modules/ai/types";
 import { PROVIDER_PRESETS } from "@/modules/ai/provider-presets";
 import { AIClient } from "@/modules/ai/client";
-import { loadProviders, saveProviders } from "@/modules/storage/providers";
+import { cloneProviders, loadProviders, saveProviders } from "@/modules/storage/providers";
 
 export const providers = signal<AIProvider[]>([]);
 export const defaultProviderId = signal<string>("");
 export const defaultModelId = signal<string>("");
 
 export async function initProviders(): Promise<void> {
-  providers.value = await loadProviders();
+  try {
+    providers.value = await loadProviders();
+  } catch {
+    providers.value = cloneProviders(PROVIDER_PRESETS);
+  }
+  try {
+    await readDefaults();
+  } catch {
+    // keep signal defaults; settings load is best-effort here
+  }
+}
+
+async function readDefaults(): Promise<void> {
   const settings = await chrome.storage.local.get("nawa:settings");
   const s: unknown = settings["nawa:settings"];
   if (s && typeof s === "object") {
@@ -29,6 +41,12 @@ export async function updateProvider(updated: AIProvider): Promise<void> {
 
 export async function addProvider(provider: AIProvider): Promise<void> {
   providers.value = [...providers.value, provider];
+  await saveProviders(providers.value);
+}
+
+/** Re-seed the 8 official presets (recovery when storage is empty/corrupt). */
+export async function resetToPresets(): Promise<void> {
+  providers.value = cloneProviders(PROVIDER_PRESETS);
   await saveProviders(providers.value);
 }
 

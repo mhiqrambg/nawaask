@@ -4,6 +4,7 @@ import {
   providers,
   updateProvider,
   removeProvider,
+  resetToPresets,
   toggleProviderEnabled,
   testProvider,
   refreshModels,
@@ -97,8 +98,22 @@ export default function SettingsPanel() {
           <h3 class="text-[11px] uppercase tracking-wide text-[rgb(var(--color-muted))]">
             AI Providers
           </h3>
-          {providers.value.map((p) => (
-            <div key={p.id} class="rounded-xl border border-[rgb(var(--color-border))] p-2.5">
+          {providers.value.length === 0 ? (
+            <div class="rounded-xl border border-dashed border-[rgb(var(--color-border))] px-3 py-4 text-center">
+              <p class="text-[12px] text-[rgb(var(--color-muted))]">
+                No providers loaded. Storage may be empty or unreadable.
+              </p>
+              <button
+                type="button"
+                class="mt-2 rounded-lg border border-[rgb(var(--color-border))] px-3 py-1.5 text-[12px] hover:border-[rgb(var(--color-accent))]"
+                onClick={() => void resetToPresets()}
+              >
+                Load official providers
+              </button>
+            </div>
+          ) : (
+            providers.value.map((p) => (
+              <div key={p.id} class="rounded-xl border border-[rgb(var(--color-border))] p-2.5">
               <div class="flex items-center justify-between pb-2">
                 <label class="flex items-center gap-2 text-[12.5px] font-medium">
                   <input
@@ -195,8 +210,9 @@ export default function SettingsPanel() {
                 )}
               </div>
             </div>
-          ))}
+          )))}
         </section>
+
 
         <p class="text-[10.5px] text-[rgb(var(--color-muted))]">
           API keys are stored in extension storage on this device only. Never sent to us.
