@@ -13,7 +13,7 @@ import {
 import { protocolOf } from "@/modules/ai/protocol";
 import { setSettingsOpen } from "@/composables/useView";
 import { IconClose, IconPlus } from "@/components/ui/icons";
-import type { AIProvider, ProviderProtocol } from "@/modules/ai/types";
+import type { AIProvider, ProviderApi, ProviderProtocol } from "@/modules/ai/types";
 
 const testStatus = signal<Record<string, string>>({});
 
@@ -64,6 +64,23 @@ function ProviderCard({ provider }: { provider: AIProvider }) {
           <option value="anthropic">Anthropic Compatible</option>
         </select>
       </label>
+      {protocol === "openai" && (
+        <label class="block pb-1.5">
+          <span class="text-[11px] text-[rgb(var(--color-muted))]">API</span>
+          <select
+            class="w-full rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2 py-1 text-[12px]"
+            value={p.api ?? "chat-completions"}
+            onChange={(e) => {
+              setProviderField(p, {
+                api: (e.currentTarget as HTMLSelectElement).value as ProviderApi,
+              });
+            }}
+          >
+            <option value="chat-completions">Chat Completions</option>
+            <option value="responses">Responses</option>
+          </select>
+        </label>
+      )}
       <label class="block pb-1.5">
         <span class="text-[11px] text-[rgb(var(--color-muted))]">Base URL</span>
         <input

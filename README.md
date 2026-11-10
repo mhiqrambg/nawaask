@@ -51,14 +51,16 @@ Details: `docs/ARCHITECTURE.md`, `docs/CLOUD_ARCHITECTURE.md`,
 Options page → Providers, or sidepanel → gear icon. Only custom providers
 exist — no built-in presets. Click **New custom**, then per card:
 
-- **Protocol**: **OpenAI Compatible** (`POST {base}/chat/completions`, SSE
-  with `[DONE]`) or **Anthropic Compatible** (`POST {base}/messages`,
-  `x-api-key` + `anthropic-version: 2023-06-01`, event-stream deltas).
+- **Protocol**: **OpenAI Compatible** or **Anthropic Compatible**
+  (`POST {base}/messages`, `x-api-key` + `anthropic-version: 2023-06-01`).
+- **API** (OpenAI protocol only): **Chat Completions**
+  (`POST {base}/chat/completions`, SSE with `[DONE]`) or **Responses**
+  (`POST {base}/responses`, `response.output_text.delta` events).
 - **Base URL** (include `/v1` where required) and **API key**.
 - **Test connection**, then **Fetch from API** for `/models` (or add a model
   ID manually). Click a model chip to set the default.
 
-Chat, model fetch, and connection tests follow the protocol on each card.
+Chat, model fetch, and connection tests follow the protocol and API on each card.
 
 ### Provider notes
 

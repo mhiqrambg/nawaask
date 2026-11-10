@@ -142,6 +142,68 @@ export async function streamAnthropicMessages(
   }
 }
 
+/**
+ * Stream an OpenAI Responses API event stream (`POST /responses`).
+ * Accumulates `response.output_text.delta` text; surfaces failure events.
+ */
+export async function streamResponsesApi(
+  response: Response,
+  onDelta: (chunk: string) => void,
+): Promise<void> {
+  if (!response.body) {
+    const text = await response.text().catch(() => "");
+    if (text) onDelta(text);
+    return;
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let event = "";
+
+  const handleData = (payload: string): void => {
+    if (!payload || payload === "[DONE]") return;
+    let json: unknown;
+    try {
+      json = JSON.parse(payload);
+    } catch {
+      return;
+    }
+    if (!json || typeof json !== "object") return;
+    if ((event === "response.failed" || event === "error") && "error" in json) {
+      throw new NawaError("provider_error", responseErrorMessage(json.error));
+    }
+    if (event === "response.output_text.delta" && "delta" in json) {
+      const delta: unknown = json.delta;
+      if (typeof delta === "string" && delta) onDelta(delta);
+    }
+  };
+
+  for (;;) {
+    const { value, done: streamDone } = await reader.read();
+    if (streamDone) break;
+    buffer += decoder.decode(value, { stream: true });
+    let idx = buffer.indexOf("\n");
+    while (idx !== -1) {
+      const line = buffer.slice(0, idx).trim();
+      buffer = buffer.slice(idx + 1);
+      if (line.startsWith("event:")) {
+        event = line.slice(6).trim();
+      } else if (line.startsWith("data:")) {
+        handleData(line.slice(5).trim());
+        if (event === "response.completed") return;
+      }
+      idx = buffer.indexOf("\n");
+    }
+  }
+}
+
+function responseErrorMessage(raw: unknown): string {
+  if (raw && typeof raw === "object" && "message" in raw && typeof raw.message === "string") {
+    return raw.message;
+  }
+  return "Request failed";
+}
+
 export async function readJson<T>(response: Response): Promise<T> {
   try {
     return (await response.json()) as T;

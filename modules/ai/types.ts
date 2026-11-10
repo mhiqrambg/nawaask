@@ -18,6 +18,9 @@ export interface AIModel {
 
 export type ProviderProtocol = "openai" | "anthropic";
 
+/** OpenAI-compatible request shape. Missing = chat-completions. */
+export type ProviderApi = "chat-completions" | "responses";
+
 export interface AIProvider {
   id: string;
   name: string;
@@ -28,7 +31,9 @@ export interface AIProvider {
   defaultModel?: string;
   /** Wire protocol. Missing = "openai" (existing stored data). */
   protocol?: ProviderProtocol;
-  /** True for user-created providers. Missing = inferred from preset ids. */
+  /** Request shape for OpenAI-compatible providers. Missing = chat-completions. */
+  api?: ProviderApi;
+  /** True for user-created providers. */
   custom?: boolean;
 }
 

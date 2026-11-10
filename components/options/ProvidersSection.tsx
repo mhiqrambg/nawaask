@@ -13,7 +13,7 @@ import {
   defaultModelId,
 } from "@/composables/useProviders";
 import { protocolOf } from "@/modules/ai/protocol";
-import type { AIProvider, ProviderProtocol } from "@/modules/ai/types";
+import type { AIProvider, ProviderApi, ProviderProtocol } from "@/modules/ai/types";
 import { IconPlus } from "@/components/ui/icons";
 
 const status = signal<Record<string, string>>({});
@@ -114,6 +114,23 @@ function ProviderCard({ provider }: { provider: AIProvider }) {
             ))}
           </select>
         </label>
+        {protocol === "openai" && (
+          <label class="flex flex-col gap-1">
+            <span class="text-[11px] text-[rgb(var(--color-muted))]">API</span>
+            <select
+              class="rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-[12.5px]"
+              value={p.api ?? "chat-completions"}
+              onChange={(e) => {
+                patch(p, {
+                  api: (e.currentTarget as HTMLSelectElement).value as ProviderApi,
+                });
+              }}
+            >
+              <option value="chat-completions">Chat Completions</option>
+              <option value="responses">Responses</option>
+            </select>
+          </label>
+        )}
         <label class="flex flex-col gap-1 sm:col-span-2">
           <span class="text-[11px] text-[rgb(var(--color-muted))]">Base URL</span>
           <input
@@ -195,7 +212,7 @@ export default function ProvidersSection() {
       <div class="flex items-center justify-between">
         <p class="text-[11.5px] text-[rgb(var(--color-muted))]">
           OpenAI-compatible or Anthropic-compatible endpoints. Chat, model fetch,
-          and connection tests follow the protocol set on each card.
+          and connection tests follow the protocol and API set on each card.
         </p>
         <button
           type="button"

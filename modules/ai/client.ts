@@ -5,7 +5,7 @@ import type {
   ModelListResponse,
 } from "./types";
 import { NawaError } from "@/utils/errors";
-import { readJson, streamAnthropicMessages, streamChatCompletion } from "./streaming";
+import { readJson, streamAnthropicMessages, streamChatCompletion, streamResponsesApi } from "./streaming";
 import { DEFAULT_TEMPERATURE } from "@/utils/constants";
 
 function apiErrorMessage(status: number, body: unknown, fallback: string): string {
@@ -82,6 +82,9 @@ export class AIClient {
   ): Promise<string> {
     if (this.protocol === "anthropic") {
       return this.chatStreamAnthropic(messages, opts, onDelta);
+    }
+    if ((this.provider.api ?? "chat-completions") === "responses") {
+      return this.chatStreamResponses(messages, opts, onDelta);
     }
     const url = `${this.base()}/chat/completions`;
     let res: Response;
@@ -163,6 +166,46 @@ export class AIClient {
 
     let full = "";
     await streamAnthropicMessages(res, (delta) => {
+      full += delta;
+      onDelta(full);
+    });
+    return full;
+  }
+
+  /**
+   * OpenAI Responses API. Conversational turns go in `input` as message
+   * items; text arrives as `response.output_text.delta` events.
+   */
+  private async chatStreamResponses(
+    messages: ChatCompletionMessage[],
+    opts: { signal?: AbortSignal; temperature?: number; model: string },
+    onDelta: (full: string) => void,
+  ): Promise<string> {
+    const input = messages.map((m) => ({
+      role: m.role,
+      content: [{ type: "input_text", text: m.content }],
+    }));
+    let res: Response;
+    try {
+      res = await fetch(`${this.base()}/responses`, {
+        method: "POST",
+        headers: this.headers(),
+        signal: opts.signal,
+        body: JSON.stringify({
+          model: opts.model,
+          input,
+          stream: true,
+          temperature: opts.temperature ?? DEFAULT_TEMPERATURE,
+        }),
+      });
+    } catch (e) {
+      if ((e as Error)?.name === "AbortError") throw e;
+      throw new NawaError("network", `Cannot reach ${this.provider.baseUrl}`);
+    }
+    await this.throwIfError(res, opts.model);
+
+    let full = "";
+    await streamResponsesApi(res, (delta) => {
       full += delta;
       onDelta(full);
     });
