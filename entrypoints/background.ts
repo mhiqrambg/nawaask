@@ -37,34 +37,40 @@ export default defineBackground(() => {
   }
 
   chrome.contextMenus.onClicked.addListener((info, tab) => {
-    void (async () => {
-      const tabId = tab?.id;
-      if (tabId === undefined) return;
-      const rawId = info.menuItemId;
-      const action = typeof rawId === "string" ? rawId.replace("nawaask-", "") : "";
-      if (action === "summarize-page") {
-        await chrome.sidePanel.open({ tabId });
-        await chrome.storage.session.set({
-          "nawa:pending-action": {
+    const tabId = tab?.id;
+    if (tabId === undefined) return;
+    // Gesture rule: open() must run synchronously in the handler, before
+    // any await. Storage writes follow in the promise chain.
+    const opened = chrome.sidePanel.open({ tabId });
+    const rawId = info.menuItemId;
+    const action = typeof rawId === "string" ? rawId.replace("nawaask-", "") : "";
+    if (action !== "summarize-page" && !(MENU_IDS as readonly string[]).includes(action)) {
+      return;
+    }
+    const payload =
+      action === "summarize-page"
+        ? {
             action: "summarize-page" as const,
             text: "",
             title: tab?.title ?? "",
             url: tab?.url ?? "",
-          },
-        });
-        return;
-      }
-      if (!(MENU_IDS as readonly string[]).includes(action)) return;
-      await chrome.sidePanel.open({ tabId });
-      await chrome.storage.session.set({
-        "nawa:pending-action": {
-          action,
-          text: info.selectionText ?? "",
-          title: tab?.title ?? "",
-          url: tab?.url ?? "",
-        },
+          }
+        : {
+            action,
+            text: info.selectionText ?? "",
+            title: tab?.title ?? "",
+            url: tab?.url ?? "",
+          };
+    // Panel and payload are independent: the open call keeps the gesture,
+    // the store keeps the action for a manually opened panel.
+    void opened.catch(() => {
+      // open rejected (e.g. panel disabled); payload below still lands
+    });
+    void chrome.storage.session
+      .set({ "nawa:pending-action": payload })
+      .catch(() => {
+        // session storage unavailable; nothing to consume later
       });
-    })();
   });
 
   chrome.commands.onCommand.addListener((command) => {
@@ -90,9 +96,13 @@ export default defineBackground(() => {
       return true;
     }
     if (message?.type === "SELECTION_ACTION" && tabId !== undefined) {
+      // Gesture rule: open() runs synchronously here, before any await.
+      const opened = chrome.sidePanel.open({ tabId });
+      void opened.catch(() => {
+        // rejected open still leaves the payload below for manual open
+      });
       void chrome.storage.session
         .set({ "nawa:pending-action": message.payload })
-        .then(() => chrome.sidePanel.open({ tabId }))
         .then(() => sendResponse({ ok: true }))
         .catch(() => sendResponse({ ok: false }));
       return true;

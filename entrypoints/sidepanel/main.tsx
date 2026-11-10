@@ -20,6 +20,14 @@ async function bootstrap(): Promise<void> {
     };
   }
   await consumePendingAction();
+  // Actions arriving while the panel is already open (e.g. a second
+  // toolbar click) never re-run bootstrap, so consume them live.
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "session") return;
+    const changed = changes["nawa:pending-action"];
+    if (!changed || !changed.newValue) return;
+    void consumePendingAction();
+  });
 }
 
 void bootstrap().finally(() => {
