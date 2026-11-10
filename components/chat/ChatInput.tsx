@@ -1,13 +1,19 @@
 import { signal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
-import { Globe, Paperclip, Quote, Send, Square, X } from "lucide-preact";
+import { Camera, Globe, Quote, Send, Square, X } from "lucide-preact";
 import { settings } from "@/composables/useSettings";
 import {
+  capturing,
+  clearScreenshot,
   fetchPageContext,
   pageContext,
+  screenshot,
+  screenshotError,
   selectedText,
+  takeScreenshot,
 } from "@/composables/useChat";
 import type { SelectionContext } from "@/modules/browser/messaging";
+import type { ScreenshotAttachment } from "@/modules/ai/types";
 import type { JSX } from "preact";
 
 interface Props {
@@ -37,15 +43,15 @@ function submit(onSend: (text: string) => void): void {
   onSend(value);
 }
 
-function sourceLabel(context: SelectionContext): string {
+function sourceLabel(source: { title: string; url: string }): string {
   let host = "";
   try {
-    host = new URL(context.url).hostname;
+    host = new URL(source.url).hostname;
   } catch {
-    host = context.url;
+    host = source.url;
   }
-  if (context.title && host) return `${context.title} · ${host}`;
-  return context.title || host || context.url;
+  if (source.title && host) return `${source.title} · ${host}`;
+  return source.title || host || source.url;
 }
 
 function SelectionContextCard({ context }: { context: SelectionContext }): JSX.Element {
@@ -82,13 +88,47 @@ function SelectionContextCard({ context }: { context: SelectionContext }): JSX.E
   ) as JSX.Element;
 }
 
+function ScreenshotCard({ image }: { image: ScreenshotAttachment }): JSX.Element {
+  return (
+    <div
+      class="mb-2 flex items-center gap-2.5 rounded-xl border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2.5 py-2"
+      title={image.url}
+    >
+      <img
+        src={image.dataUrl}
+        alt={`Screenshot of ${sourceLabel(image)}`}
+        class="h-12 w-16 shrink-0 rounded-md border border-[rgb(var(--color-border))] object-cover"
+      />
+      <div class="min-w-0 flex-1">
+        <p class="text-[11.5px] leading-snug">Screenshot</p>
+        <p class="truncate text-[10px] text-[rgb(var(--color-muted))]">
+          From {sourceLabel(image)}
+        </p>
+        <p class="text-[9.5px] text-[rgb(var(--color-muted))]">
+          {image.width}×{image.height}
+        </p>
+      </div>
+      <button
+        type="button"
+        class="shrink-0 rounded p-0.5 text-[rgb(var(--color-muted))] hover:bg-[rgb(var(--color-bg))]"
+        title="Remove screenshot"
+        aria-label="Remove screenshot"
+        onClick={clearScreenshot}
+      >
+        <X size={12} />
+      </button>
+    </div>
+  ) as JSX.Element;
+}
+
 export default function ChatInput({ onSend, onStop, streaming }: Props) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const selection = selectedText.value;
+  const image = screenshot.value;
 
   useEffect(() => {
-    if (selection) inputRef.current?.focus();
-  }, [selection]);
+    if (selection || image) inputRef.current?.focus();
+  }, [selection, image]);
 
   const handleKey = (event: KeyboardEvent): void => {
     if (event.key === "Enter" && !event.shiftKey && settings.value.enterToSend) {
@@ -100,6 +140,12 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
   return (
     <div class="flex flex-col">
       {selection && <SelectionContextCard context={selection} />}
+      {image && <ScreenshotCard image={image} />}
+      {screenshotError.value && (
+        <p class="mb-2 rounded-lg border border-red-400/40 bg-red-500/10 px-2 py-1.5 text-[11px] text-red-400">
+          {screenshotError.value}
+        </p>
+      )}
       <div class="flex items-end gap-2 rounded-2xl border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-3 py-2">
         <button
           type="button"
@@ -115,12 +161,21 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
         </button>
         <button
           type="button"
-          class="rounded p-1 text-[rgb(var(--color-muted))] hover:bg-[rgb(var(--color-bg))]"
-          title="Attachments (coming soon)"
-          aria-label="Attach file"
-          disabled
+          class={`rounded p-1 hover:bg-[rgb(var(--color-bg))] ${
+            image ? "text-[rgb(var(--color-accent))]" : "text-[rgb(var(--color-muted))]"
+          } disabled:opacity-40`}
+          title={
+            capturing.value
+              ? "Capturing…"
+              : image
+                ? "Retake screenshot"
+                : "Take screenshot of the current tab"
+          }
+          aria-label="Take screenshot of the current tab"
+          disabled={streaming || capturing.value}
+          onClick={() => void takeScreenshot()}
         >
-          <Paperclip size={18} />
+          <Camera size={18} />
         </button>
         <textarea
           ref={inputRef}
@@ -129,9 +184,11 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
           placeholder={
             streaming
               ? "Generating…"
-              : selection
-                ? "Ask about the selected text…"
-                : "Ask NawaAsk anything…"
+              : image
+                ? "Ask about this screenshot…"
+                : selection
+                  ? "Ask about the selected text…"
+                  : "Ask NawaAsk anything…"
           }
           aria-label="Message"
           value={draft.value}

@@ -1,5 +1,10 @@
 import { signal, computed } from "@preact/signals";
-import type { ChatMessage, ChatCompletionMessage } from "@/modules/ai/types";
+import type {
+  ChatMessage,
+  ChatCompletionMessage,
+  ChatContentPart,
+  ScreenshotAttachment,
+} from "@/modules/ai/types";
 import { AIClient } from "@/modules/ai/client";
 import type { Conversation, ConversationMeta } from "@/modules/storage/conversations";
 import {
@@ -14,6 +19,7 @@ import { loadSettings } from "@/modules/storage/settings";
 import { loadProviders } from "@/modules/storage/providers";
 import type { PageContextResult, SelectionContext } from "@/modules/browser/messaging";
 import { SELECTION_STORAGE_KEY } from "@/modules/browser/messaging";
+import { captureVisibleScreenshot } from "@/modules/browser/screenshot";
 import { buildSystemPrompt } from "@/modules/prompts/system-prompts";
 
 export const messages = signal<ChatMessage[]>([]);
@@ -24,6 +30,9 @@ export const conversationId = signal<string | null>(null);
 export const currentModel = signal<{ providerId: string; modelId: string } | null>(null);
 export const historyMeta = signal<ConversationMeta[]>([]);
 export const selectedText = signal<SelectionContext | null>(null);
+export const screenshot = signal<ScreenshotAttachment | null>(null);
+export const screenshotError = signal<string | null>(null);
+export const capturing = signal(false);
 
 let abortController: AbortController | null = null;
 
@@ -60,6 +69,8 @@ export async function startNewChat(): Promise<void> {
   errorMessage.value = null;
   pageContext.value = null;
   selectedText.value = null;
+  screenshot.value = null;
+  screenshotError.value = null;
   conversationId.value = null;
 }
 
@@ -71,6 +82,8 @@ export async function loadConversation(id: string): Promise<void> {
   conversationId.value = conv.id;
   currentModel.value = { providerId: conv.providerId, modelId: conv.modelId };
   selectedText.value = null;
+  screenshot.value = null;
+  screenshotError.value = null;
   pageContext.value = null;
 }
 
@@ -104,6 +117,17 @@ function buildSelectionRequest(context: string, question: string): string {
   return `Context:\n${context}\n\nUser Question:\n${question}\n\nInstruction:\nAnswer the user's question based on the selected text. Provide additional helpful context when necessary.`;
 }
 
+function userContent(message: ChatMessage): string | ChatContentPart[] {
+  const text = message.context
+    ? buildSelectionRequest(message.context, message.content)
+    : message.content;
+  if (!message.screenshot) return text;
+  return [
+    { type: "text", text },
+    { type: "image_url", image_url: { url: message.screenshot.dataUrl } },
+  ];
+}
+
 function toCompletionMessages(
   history: ChatMessage[],
   system: string,
@@ -113,7 +137,7 @@ function toCompletionMessages(
     { role: "system", content: system },
     ...prior.map((m) => ({
       role: m.role,
-      content: m.role === "user" && m.context ? buildSelectionRequest(m.context, m.content) : m.content,
+      content: m.role === "user" ? userContent(m) : m.content,
     })),
   ];
 }
@@ -168,6 +192,7 @@ async function generate(history: ChatMessage[]): Promise<void> {
   const system = buildSystemPrompt({
     hasPageContext: includePage,
     hasSelection: Boolean(lastUser?.context),
+    hasScreenshot: Boolean(lastUser?.screenshot),
     language: settings.language,
   });
   const convMessages = toCompletionMessages(history, system);
@@ -231,11 +256,13 @@ export async function sendMessage(text: string): Promise<void> {
   const trimmed = text.trim();
   if (!trimmed || streaming.value) return;
   const context = selectedText.value?.text;
+  const image = screenshot.value;
   const userMessage: ChatMessage = {
     id: crypto.randomUUID(),
     role: "user",
     content: trimmed,
     ...(context ? { context } : {}),
+    ...(image ? { screenshot: image } : {}),
     createdAt: Date.now(),
   };
   const history = [...messages.value, userMessage];
@@ -243,6 +270,8 @@ export async function sendMessage(text: string): Promise<void> {
   // The context lives on the message from here on; the composer chip clears
   // so it cannot leak into later, unrelated questions.
   selectedText.value = null;
+  screenshot.value = null;
+  screenshotError.value = null;
   await generate(history);
 }
 
@@ -258,6 +287,26 @@ export async function regenerate(): Promise<void> {
   if (!lastUser || lastUser.role !== "user") return;
   messages.value = history;
   await generate(history);
+}
+
+/** Capture the visible tab into the composer. Never sends a request. */
+export async function takeScreenshot(): Promise<void> {
+  if (capturing.value || streaming.value) return;
+  capturing.value = true;
+  screenshotError.value = null;
+  try {
+    screenshot.value = await captureVisibleScreenshot();
+  } catch (error) {
+    screenshotError.value =
+      error instanceof Error ? error.message : "Could not capture the current tab.";
+  } finally {
+    capturing.value = false;
+  }
+}
+
+export function clearScreenshot(): void {
+  screenshot.value = null;
+  screenshotError.value = null;
 }
 
 /** Attach selected text as context without sending or generating anything. */

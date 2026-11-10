@@ -2,6 +2,7 @@ import type {
   AIProvider,
   ChatCompletionMessage,
   ChatCompletionResponse,
+  ChatContentPart,
   ModelListResponse,
 } from "./types";
 import { NawaError } from "@/utils/errors";
@@ -19,6 +20,51 @@ function apiErrorMessage(status: number, body: unknown, fallback: string): strin
   }
   if (typeof text === "string") return text;
   return fallback;
+}
+
+type AnthropicContentBlock =
+  | { type: "text"; text: string }
+  | {
+      type: "image";
+      source: { type: "base64"; media_type: string; data: string };
+    };
+
+function toAnthropicContent(
+  content: string | ChatContentPart[],
+): string | AnthropicContentBlock[] {
+  if (typeof content === "string") return content;
+  return content.map((part) => {
+    if (part.type === "text") return { type: "text", text: part.text };
+    const url = part.image_url.url;
+    const match = /^data:([^;,]+);base64,/.exec(url);
+    const mediaType = match?.[1];
+    if (!match || !mediaType) {
+      throw new NawaError("invalid_image", "Screenshot is not a base64 data URL.");
+    }
+    return {
+      type: "image",
+      source: {
+        type: "base64",
+        media_type: mediaType,
+        data: url.slice(match[0].length),
+      },
+    };
+  });
+}
+
+type ResponsesContentPart =
+  | { type: "input_text"; text: string }
+  | { type: "input_image"; image_url: string };
+
+function toResponsesContent(
+  content: string | ChatContentPart[],
+): ResponsesContentPart[] {
+  if (typeof content === "string") return [{ type: "input_text", text: content }];
+  return content.map((part) =>
+    part.type === "text"
+      ? { type: "input_text", text: part.text }
+      : { type: "input_image", image_url: part.image_url.url },
+  );
 }
 
 export class AIClient {
@@ -139,10 +185,11 @@ export class AIClient {
     opts: { signal?: AbortSignal; temperature?: number; model: string },
     onDelta: (full: string) => void,
   ): Promise<string> {
-    const system = messages.find((m) => m.role === "system")?.content;
+    const systemContent = messages.find((m) => m.role === "system")?.content;
+    const system = typeof systemContent === "string" ? systemContent : undefined;
     const turns = messages
       .filter((m) => m.role === "user" || m.role === "assistant")
-      .map((m) => ({ role: m.role, content: m.content }));
+      .map((m) => ({ role: m.role, content: toAnthropicContent(m.content) }));
     let res: Response;
     try {
       res = await fetch(`${this.base()}/messages`, {
@@ -183,7 +230,7 @@ export class AIClient {
   ): Promise<string> {
     const input = messages.map((m) => ({
       role: m.role,
-      content: [{ type: "input_text", text: m.content }],
+      content: toResponsesContent(m.content),
     }));
     let res: Response;
     try {

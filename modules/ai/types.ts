@@ -4,9 +4,21 @@ export interface ChatMessage {
   content: string;
   /** Selected page text this user message was asked about. */
   context?: string;
+  /** Screenshot captured from the active tab when the question was sent. */
+  screenshot?: ScreenshotAttachment;
   createdAt: number;
   error?: string;
   model?: string;
+}
+
+/** JPEG screenshot of the visible tab, downscaled for vision requests. */
+export interface ScreenshotAttachment {
+  /** `data:image/jpeg;base64,...` */
+  dataUrl: string;
+  width: number;
+  height: number;
+  title: string;
+  url: string;
 }
 
 export interface AIModel {
@@ -39,9 +51,13 @@ export interface AIProvider {
   custom?: boolean;
 }
 
+export type ChatContentPart =
+  | { type: "text"; text: string }
+  | { type: "image_url"; image_url: { url: string } };
+
 export interface ChatCompletionMessage {
   role: ChatMessage["role"];
-  content: string;
+  content: string | ChatContentPart[];
 }
 
 export interface ChatCompletionRequest {

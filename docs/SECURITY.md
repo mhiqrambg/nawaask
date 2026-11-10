@@ -10,9 +10,14 @@
   `iframe`, `object`, `embed` forbidden) → `dangerouslySetInnerHTML`.
 - **Page content is untrusted.** System prompt labels it data, not
   instructions; extraction strips scripts/nav/forms and caps length.
+- **Screenshots are untrusted too.** The system prompt tells the model to
+  treat text in the image as data, not instructions. Capture runs only on the
+  camera-button click via `chrome.tabs.captureVisibleTab`; nothing captures in
+  the background, and images are sent only with a user-pressed Send.
 - **Least privilege.** Permissions: `sidePanel`, `storage`, `tabs`,
-  `activeTab`; host `<all_urls>` (required for the Ask pill/page context);
-  `clipboardWrite` optional. No remote code execution.
+  `activeTab`; host `<all_urls>` (required for the Ask pill/page context and
+  `captureVisibleTab` screenshots); `clipboardWrite` optional. No remote code
+  execution.
 - **No secrets in the bundle.** `VITE_*` config carries only the public
   cloud base URL. Provider keys are user-entered at runtime.
 

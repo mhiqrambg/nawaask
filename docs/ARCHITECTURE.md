@@ -30,7 +30,8 @@ MODE CLOUD (only when VITE_NAWAASK_CLOUD_API_BASE_URL is set)
   usePrompts, useView, useModelSelector.
 - `modules/ai/` — Provider client (OpenAI-compatible + Anthropic Messages
   protocols), SSE parsers, strict error mapping (401/404/429).
-- `modules/browser/` — Typed cross-context contracts, readable-text extraction.
+- `modules/browser/` — Typed cross-context contracts, readable-text
+  extraction, visible-tab screenshot capture + downscale.
 - `modules/storage/` — chrome.storage wrappers + IndexedDB conversation store.
 - `modules/prompts/` — Built-in + custom templates with `{{selection}}`,
   `{{title}}`, `{{url}}`, `{{page}}` placeholders.
@@ -61,11 +62,24 @@ Selection never opens the panel by itself (page clicks carry no extension
 gesture) and never sends a request. The context is cleared on submit, so it
 cannot leak into later questions.
 
+Screenshot flow:
+
+```
+camera button click → chrome.tabs.captureVisibleTab (visible viewport)
+→ OffscreenCanvas downscale to ≤1600 px JPEG → composer preview card
+→ Send attaches image_url part to that user message
+→ AIClient.chatStream (OpenAI image_url / Anthropic base64 image /
+  Responses input_image) → conversation persists title/URL + JPEG
+```
+
+Capture is user-click-only, never scheduled. The image is sent only with Send
+and stays on the message, so regenerate reuses it and later questions do not.
+
 ## Security boundaries
 
 - Provider API keys: extension storage → `Authorization` header only.
   Never in DOM, content scripts, logs, or the cloud client.
 - Page content: untrusted input; system prompt instructs the model to treat
-  it as data, never instructions.
+  it as data, never instructions. Screenshot pixels get the same rule.
 - Backend: explicit CORS allowlist, security headers, 1 MiB body cap,
   envelope errors, no stack leaks. See SECURITY.md.

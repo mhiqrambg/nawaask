@@ -44,7 +44,7 @@ export default function PopupApp() {
         </button>
       </div>
       <p class="mt-3 text-[10.5px] text-[rgb(var(--color-muted))]">
-        Tip: select any text and pick Explain / Summarize / Translate / Rewrite / Ask.
+        Tip: select text or take a screenshot, then ask about it.
       </p>
     </div>
   );

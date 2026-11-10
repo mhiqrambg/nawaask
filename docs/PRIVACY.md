@@ -10,6 +10,11 @@
   page attach, "summarize this page"). We send the minimum readable text,
   never the raw DOM, scripts, or credentials. Page text is treated as
   untrusted data (see SECURITY.md).
+- **Screenshots** are captured only when you click the camera button in the
+  composer. The visible tab is downscaled to JPEG, kept in the composer as a
+  removable preview, and sent to your configured provider only when you press
+  Send. Captured images remain in the local conversation history until you
+  delete it. There is no background, periodic, or automatic capture.
 - **NawaAsk servers**: zero requests. There is nothing to opt out of.
 
 ## Cloud mode (optional)
