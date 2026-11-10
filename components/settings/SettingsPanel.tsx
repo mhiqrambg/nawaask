@@ -1,3 +1,4 @@
+import { useState } from "preact/hooks";
 import { signal } from "@preact/signals";
 import { settings, updateSettings, setTheme } from "@/composables/useSettings";
 import {
@@ -9,9 +10,10 @@ import {
   testProvider,
   refreshModels,
 } from "@/composables/useProviders";
+import { isCustomProvider, protocolOf } from "@/modules/ai/provider-presets";
 import { setSettingsOpen } from "@/composables/useView";
-import { IconClose } from "@/components/ui/icons";
-import type { AIProvider } from "@/modules/ai/types";
+import { IconChevron, IconClose } from "@/components/ui/icons";
+import type { AIProvider, ProviderProtocol } from "@/modules/ai/types";
 
 const testStatus = signal<Record<string, string>>({});
 
@@ -19,7 +21,145 @@ function setProviderField(provider: AIProvider, patch: Partial<AIProvider>): voi
   void updateProvider({ ...provider, ...patch });
 }
 
+function ProviderCard({ provider, showProtocol }: { provider: AIProvider; showProtocol: boolean }) {
+  const p = provider;
+  const protocol = protocolOf(p);
+  return (
+    <div key={p.id} class="rounded-xl border border-[rgb(var(--color-border))] p-2.5">
+      <div class="flex items-center justify-between pb-2">
+        <label class="flex items-center gap-2 text-[12.5px] font-medium">
+          <input
+            type="checkbox"
+            checked={p.enabled}
+            onChange={(e) => {
+              void toggleProviderEnabled(p.id, (e.currentTarget as HTMLInputElement).checked);
+            }}
+          />
+          {p.name}
+        </label>
+        <div class="flex items-center gap-2 text-[11px]">
+          {showProtocol && (
+            <span class="rounded border border-[rgb(var(--color-border))] px-1.5 py-0.5 text-[10.5px] text-[rgb(var(--color-muted))]">
+              {protocol === "anthropic" ? "Anthropic" : "OpenAI"}
+            </span>
+          )}
+          <button
+            type="button"
+            class="text-red-400 hover:underline"
+            onClick={() => void removeProvider(p.id)}
+          >
+            Remove
+          </button>
+        </div>
+      </div>
+      {showProtocol && (
+        <label class="block pb-1.5">
+          <span class="text-[11px] text-[rgb(var(--color-muted))]">Protocol</span>
+          <select
+            class="w-full rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2 py-1 text-[12px]"
+            value={protocol}
+            onChange={(e) => {
+              const next = (e.currentTarget as HTMLSelectElement).value as ProviderProtocol;
+              applyProtocol(p, next);
+            }}
+          >
+            <option value="openai">OpenAI Compatible</option>
+            <option value="anthropic">Anthropic Compatible</option>
+          </select>
+        </label>
+      )}
+      <label class="block pb-1.5">
+        <span class="text-[11px] text-[rgb(var(--color-muted))]">Base URL</span>
+        <input
+          type="text"
+          class="w-full rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2 py-1 text-[12px]"
+          value={p.baseUrl}
+          onInput={(e) =>
+            setProviderField(p, {
+              baseUrl: (e.currentTarget as HTMLInputElement).value,
+            })
+          }
+        />
+      </label>
+      <label class="block pb-1.5">
+        <span class="text-[11px] text-[rgb(var(--color-muted))]">API key</span>
+        <input
+          type="password"
+          class="w-full rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2 py-1 text-[12px]"
+          value={p.apiKey}
+          placeholder="sk-…"
+          onInput={(e) =>
+            setProviderField(p, {
+              apiKey: (e.currentTarget as HTMLInputElement).value,
+            })
+          }
+        />
+      </label>
+      <div class="flex items-center gap-1.5 pt-1">
+        <button
+          type="button"
+          class="rounded border border-[rgb(var(--color-border))] px-2 py-1 text-[11px] hover:border-[rgb(var(--color-accent))]"
+          onClick={() => {
+            void testProvider(p)
+              .then((msg) => {
+                testStatus.value = { ...testStatus.value, [p.id]: msg };
+              })
+              .catch((err: Error) => {
+                testStatus.value = {
+                  ...testStatus.value,
+                  [p.id]: `Error: ${err.message}`,
+                };
+              });
+          }}
+        >
+          Test
+        </button>
+        <button
+          type="button"
+          class="rounded border border-[rgb(var(--color-border))] px-2 py-1 text-[11px] hover:border-[rgb(var(--color-accent))]"
+          onClick={() => {
+            void refreshModels(p.id)
+              .then((ids) => {
+                testStatus.value = {
+                  ...testStatus.value,
+                  [p.id]: `Loaded ${ids.length} models`,
+                };
+              })
+              .catch((err: Error) => {
+                testStatus.value = {
+                  ...testStatus.value,
+                  [p.id]: `Error: ${err.message}`,
+                };
+              });
+          }}
+        >
+          Refresh models
+        </button>
+        {testStatus.value[p.id] && (
+          <span class="text-[10.5px] text-[rgb(var(--color-muted))]">
+            {testStatus.value[p.id]}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function applyProtocol(p: AIProvider, next: ProviderProtocol): void {
+  const hint =
+    next === "anthropic" ? "https://api.anthropic.com/v1" : "https://api.example.com/v1";
+  setProviderField(p, {
+    protocol: next,
+    baseUrl: p.baseUrl === "" || p.baseUrl === "https://api.example.com/v1" ? hint : p.baseUrl,
+  });
+}
+
 export default function SettingsPanel() {
+  const [openOfficial, setOpenOfficial] = useState(true);
+  const [openCustom, setOpenCustom] = useState(true);
+  const official = providers.value.filter((p) => !isCustomProvider(p));
+  const custom = providers.value.filter((p) => isCustomProvider(p));
+
   return (
     <div class="flex h-full flex-col">
       <header class="flex items-center justify-between border-b border-[rgb(var(--color-border))] px-3 py-2">
@@ -94,7 +234,7 @@ export default function SettingsPanel() {
         </section>
 
         {/* Providers */}
-        <section class="flex flex-col gap-2">
+        <section class="flex flex-col gap-3">
           <h3 class="text-[11px] uppercase tracking-wide text-[rgb(var(--color-muted))]">
             AI Providers
           </h3>
@@ -112,107 +252,68 @@ export default function SettingsPanel() {
               </button>
             </div>
           ) : (
-            providers.value.map((p) => (
-              <div key={p.id} class="rounded-xl border border-[rgb(var(--color-border))] p-2.5">
-              <div class="flex items-center justify-between pb-2">
-                <label class="flex items-center gap-2 text-[12.5px] font-medium">
-                  <input
-                    type="checkbox"
-                    checked={p.enabled}
-                    onChange={(e) => {
-                      void toggleProviderEnabled(
-                        p.id,
-                        (e.currentTarget as HTMLInputElement).checked,
-                      );
-                    }}
-                  />
-                  {p.name}
-                </label>
+            <>
+              <div>
                 <button
                   type="button"
-                  class="text-[11px] text-red-400 hover:underline"
-                  onClick={() => void removeProvider(p.id)}
+                  class="flex items-center gap-1.5 pb-1.5 text-[12.5px] font-semibold"
+                  aria-expanded={openOfficial}
+                  onClick={() => setOpenOfficial((v) => !v)}
                 >
-                  Remove
-                </button>
-              </div>
-              <label class="block pb-1.5">
-                <span class="text-[11px] text-[rgb(var(--color-muted))]">Base URL</span>
-                <input
-                  type="text"
-                  class="w-full rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2 py-1 text-[12px]"
-                  value={p.baseUrl}
-                  onInput={(e) =>
-                    setProviderField(p, {
-                      baseUrl: (e.currentTarget as HTMLInputElement).value,
-                    })
-                  }
-                />
-              </label>
-              <label class="block pb-1.5">
-                <span class="text-[11px] text-[rgb(var(--color-muted))]">API key</span>
-                <input
-                  type="password"
-                  class="w-full rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2 py-1 text-[12px]"
-                  value={p.apiKey}
-                  placeholder="sk-…"
-                  onInput={(e) =>
-                    setProviderField(p, {
-                      apiKey: (e.currentTarget as HTMLInputElement).value,
-                    })
-                  }
-                />
-              </label>
-              <div class="flex items-center gap-1.5 pt-1">
-                <button
-                  type="button"
-                  class="rounded border border-[rgb(var(--color-border))] px-2 py-1 text-[11px] hover:border-[rgb(var(--color-accent))]"
-                  onClick={() => {
-                    void testProvider(p)
-                      .then((msg) => {
-                        testStatus.value = { ...testStatus.value, [p.id]: msg };
-                      })
-                      .catch((err: Error) => {
-                        testStatus.value = {
-                          ...testStatus.value,
-                          [p.id]: `Error: ${err.message}`,
-                        };
-                      });
-                  }}
-                >
-                  Test
-                </button>
-                <button
-                  type="button"
-                  class="rounded border border-[rgb(var(--color-border))] px-2 py-1 text-[11px] hover:border-[rgb(var(--color-accent))]"
-                  onClick={() => {
-                    void refreshModels(p.id)
-                      .then((ids) => {
-                        testStatus.value = {
-                          ...testStatus.value,
-                          [p.id]: `Loaded ${ids.length} models`,
-                        };
-                      })
-                      .catch((err: Error) => {
-                        testStatus.value = {
-                          ...testStatus.value,
-                          [p.id]: `Error: ${err.message}`,
-                        };
-                      });
-                  }}
-                >
-                  Refresh models
-                </button>
-                {testStatus.value[p.id] && (
-                  <span class="text-[10.5px] text-[rgb(var(--color-muted))]">
-                    {testStatus.value[p.id]}
+                  <span
+                    class={`inline-block transition-transform ${openOfficial ? "" : "-rotate-90"}`}
+                    aria-hidden="true"
+                  >
+                    <IconChevron size={14} />
                   </span>
+                  Providers
+                  <span class="rounded-full bg-[rgb(var(--color-surface))] px-2 py-0.5 text-[10.5px] font-normal text-[rgb(var(--color-muted))]">
+                    {official.length}
+                  </span>
+                </button>
+                {openOfficial && (
+                  <div class="flex flex-col gap-2">
+                    {official.map((p) => (
+                      <ProviderCard key={p.id} provider={p} showProtocol={false} />
+                    ))}
+                  </div>
                 )}
               </div>
-            </div>
-          )))}
+              <div>
+                <button
+                  type="button"
+                  class="flex items-center gap-1.5 pb-1.5 text-[12.5px] font-semibold"
+                  aria-expanded={openCustom}
+                  onClick={() => setOpenCustom((v) => !v)}
+                >
+                  <span
+                    class={`inline-block transition-transform ${openCustom ? "" : "-rotate-90"}`}
+                    aria-hidden="true"
+                  >
+                    <IconChevron size={14} />
+                  </span>
+                  Custom Providers
+                  <span class="rounded-full bg-[rgb(var(--color-surface))] px-2 py-0.5 text-[10.5px] font-normal text-[rgb(var(--color-muted))]">
+                    {custom.length}
+                  </span>
+                </button>
+                {openCustom && (
+                  <div class="flex flex-col gap-2">
+                    {custom.length === 0 ? (
+                      <p class="rounded-xl border border-dashed border-[rgb(var(--color-border))] px-3 py-3 text-center text-[11.5px] text-[rgb(var(--color-muted))]">
+                        None yet. Add one in Options → Providers → Custom Providers.
+                      </p>
+                    ) : (
+                      custom.map((p) => (
+                        <ProviderCard key={p.id} provider={p} showProtocol />
+                      ))
+                    )}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </section>
-
 
         <p class="text-[10.5px] text-[rgb(var(--color-muted))]">
           API keys are stored in extension storage on this device only. Never sent to us.
