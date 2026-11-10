@@ -1,4 +1,4 @@
-import type { AIProvider } from "./types";
+import type { AIProvider, ProviderProtocol } from "./types";
 
 /** Built-in provider presets. baseUrl should include the /v1 prefix when the provider requires it. */
 export const PROVIDER_PRESETS: AIProvider[] = [
@@ -103,3 +103,19 @@ export const PROVIDER_PRESETS: AIProvider[] = [
     ],
   },
 ];
+
+/** Resolve wire protocol; stored providers without the field are OpenAI-compatible. */
+export function protocolOf(provider: AIProvider): ProviderProtocol {
+  return provider.protocol ?? "openai";
+}
+
+/**
+ * Official presets (and copies made from them) vs user-created custom providers.
+ * Stored providers without the flag fall back to preset-id matching.
+ */
+export function isCustomProvider(provider: AIProvider): boolean {
+  if (typeof provider.custom === "boolean") return provider.custom;
+  return !PROVIDER_PRESETS.some(
+    (preset) => preset.id === provider.id || provider.id.startsWith(`${preset.id}-`),
+  );
+}

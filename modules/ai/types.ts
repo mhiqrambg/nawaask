@@ -16,6 +16,8 @@ export interface AIModel {
   supportsTools?: boolean;
 }
 
+export type ProviderProtocol = "openai" | "anthropic";
+
 export interface AIProvider {
   id: string;
   name: string;
@@ -24,6 +26,10 @@ export interface AIProvider {
   enabled: boolean;
   models: AIModel[];
   defaultModel?: string;
+  /** Wire protocol. Missing = "openai" (existing stored data). */
+  protocol?: ProviderProtocol;
+  /** True for user-created providers. Missing = inferred from preset ids. */
+  custom?: boolean;
 }
 
 export interface ChatCompletionMessage {

@@ -48,22 +48,19 @@ Details: `docs/ARCHITECTURE.md`, `docs/CLOUD_ARCHITECTURE.md`,
 
 ## Configure a provider
 
-1. Open the side panel → gear icon, or extension Options page.
-2. Pick a provider tab (OpenAI, DeepSeek, OpenRouter, Qwen, Kimi, Groq,
-   Together AI, Ollama, Custom).
-3. Paste Base URL (must include `/v1` path where required) and API key.
-4. Click **Test connection**, then **Fetch from API** to pull `/models`,
-   or add a model ID manually.
-5. Set default provider + model.
+Options page → Providers tab. Two collapsible groups:
 
-Request shape sent to `{baseUrl}/chat/completions`:
+- **Providers** — official presets (OpenAI, DeepSeek, OpenRouter, Qwen, Kimi,
+  Groq, Together AI, Ollama). The `+ Name` buttons add extra profiles.
+- **Custom Providers** — your own endpoints. Per provider pick **OpenAI
+  Compatible** (`POST {base}/chat/completions`, SSE with `[DONE]`) or
+  **Anthropic Compatible** (`POST {base}/messages`, `x-api-key` +
+  `anthropic-version: 2023-06-01`, event-stream deltas). Chat, model fetch,
+  and connection test all follow the chosen protocol.
 
-```json
-{ "model": "model-id", "messages": [], "stream": true, "temperature": 0.7 }
-```
-
-Streaming uses SSE parsing with `[DONE]` termination; AbortController cancels
-generation. 401/404/429 map to human-readable errors.
+Per provider: paste Base URL (include `/v1` where required) and API key →
+**Test connection** → **Fetch from API** for `/models` (or add a model ID
+manually) → click a model chip to set the default.
 
 ### Provider notes
 

@@ -47,6 +47,7 @@ export function createFromPreset(id: string): AIProvider | null {
   if (!preset) return null;
   return {
     ...preset,
+    custom: false,
     models: preset.models.map((m) => ({ ...m })),
   };
 }
@@ -58,6 +59,8 @@ export function newCustomProvider(): AIProvider {
     baseUrl: "https://api.example.com/v1",
     apiKey: "",
     enabled: true,
+    protocol: "openai",
+    custom: true,
     models: [{ id: "custom-model", name: "Custom Model", supportsStreaming: true }],
     defaultModel: "custom-model",
   };

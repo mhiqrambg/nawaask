@@ -76,6 +76,72 @@ export async function streamChatCompletion(
   }
 }
 
+/**
+ * Stream an Anthropic Messages API response (SSE `event:` + `data:` lines).
+ * Accumulates `content_block_delta` text; surfaces `error` events as failures.
+ */
+export async function streamAnthropicMessages(
+  response: Response,
+  onDelta: (chunk: string) => void,
+): Promise<void> {
+  if (!response.body) {
+    const text = await response.text().catch(() => "");
+    if (text) onDelta(text);
+    return;
+  }
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let event = "";
+
+  const handleData = (payload: string): void => {
+    if (!payload) return;
+    let json: unknown;
+    try {
+      json = JSON.parse(payload);
+    } catch {
+      return;
+    }
+    if (!json || typeof json !== "object") return;
+    if (event === "error" && "error" in json) {
+      const detail: unknown = json.error;
+      const message =
+        detail && typeof detail === "object" && "message" in detail &&
+          typeof detail.message === "string"
+          ? detail.message
+          : "Anthropic request failed";
+      throw new NawaError("provider_error", message, response.status);
+    }
+    if (event === "content_block_delta" && "delta" in json) {
+      const delta: unknown = json.delta;
+      if (
+        delta && typeof delta === "object" && "text" in delta &&
+        typeof delta.text === "string" && delta.text
+      ) {
+        onDelta(delta.text);
+      }
+    }
+  };
+
+  for (;;) {
+    const { value, done: streamDone } = await reader.read();
+    if (streamDone) break;
+    buffer += decoder.decode(value, { stream: true });
+    let idx = buffer.indexOf("\n");
+    while (idx !== -1) {
+      const line = buffer.slice(0, idx).trim();
+      buffer = buffer.slice(idx + 1);
+      if (line.startsWith("event:")) {
+        event = line.slice(6).trim();
+      } else if (line.startsWith("data:")) {
+        handleData(line.slice(5).trim());
+        if (event === "message_stop") return;
+      }
+      idx = buffer.indexOf("\n");
+    }
+  }
+}
+
 export async function readJson<T>(response: Response): Promise<T> {
   try {
     return (await response.json()) as T;
