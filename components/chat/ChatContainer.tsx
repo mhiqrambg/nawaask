@@ -1,4 +1,3 @@
-import { SUGGESTED_PROMPTS } from "@/modules/prompts/system-prompts";
 import {
   messages,
   streaming,
@@ -26,10 +25,6 @@ export default function ChatContainer() {
   const modelLabel = currentModel.value
     ? getModelLabel(currentModel.value.providerId, currentModel.value.modelId)
     : "No model";
-
-  const onPrompt = (prompt: string): void => {
-    void sendMessage(prompt);
-  };
 
   return (
     <div class="flex h-full flex-col">
@@ -60,21 +55,6 @@ export default function ChatContainer() {
       {empty ? (
         <div class="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-8">
           <h2 class="text-lg font-semibold">How can I help?</h2>
-          <div class="grid w-full grid-cols-1 gap-2">
-            {SUGGESTED_PROMPTS.map((p) => (
-              <button
-                key={p.title}
-                type="button"
-                class="rounded-xl border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-3 py-2.5 text-left hover:border-[rgb(var(--color-accent))]"
-                onClick={() => onPrompt(p.prompt)}
-              >
-                <span class="mr-2 inline-flex align-middle" aria-hidden="true">
-                  <p.icon size={14} />
-                </span>
-                <span class="text-[13px] font-medium">{p.title}</span>
-              </button>
-            ))}
-          </div>
         </div>
       ) : (
         <div

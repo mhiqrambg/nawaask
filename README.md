@@ -75,7 +75,7 @@ Chat, model fetch, and connection tests follow the protocol and API on each card
 ## Features
 
 - Side-panel chat: streaming markdown + code highlight, copy, regenerate, stop,
-  auto-scroll, suggested prompts, model switcher.
+  auto-scroll, model switcher.
 - Select text → floating **Ask NawaAsk** pill attaches the selection to the
   composer as a removable context card (source title + URL). Nothing is sent
   until you type a question and press Send. Selecting text never calls the AI.
