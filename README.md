@@ -1,5 +1,7 @@
 # NawaAsk — Your AI, Anywhere on the Web
 
+![NawaAsk](image.png)
+
 Lightweight Chrome (MV3) AI assistant. Chat in the side panel, ask about selected
 text with a floating Ask NawaAsk pill, drag-select a region of the page to screenshot,
 summarize pages, and connect any OpenAI-compatible provider. Built with Bun +
