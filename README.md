@@ -7,21 +7,19 @@ text with a floating Ask NawaAsk pill, drag-select a region of the page to scree
 summarize pages, and connect any OpenAI-compatible provider. Built with Bun +
 WXT + Preact + TypeScript. No React.
 
-## Quick start
+## Install to Chrome
 
-```bash
-bun install
-bun run dev        # loads unpacked extension, hot reload
-```
+1. Build the extension:
+   ```bash
+   bun install
+   bun run build      # output in .output/chrome-mv3/
+   ```
+2. Open `chrome://extensions` in Chrome.
+3. Enable **Developer mode** (toggle in the top-right corner).
+4. Click **Load unpacked**.
+5. Select the `.output/chrome-mv3/` folder.
 
-Production:
-
-```bash
-bun run build      # output in .output/chrome-mv3/
-```
-
-Load in Chrome: `chrome://extensions` → Developer mode → Load unpacked →
-select `.output/chrome-mv3/`.
+The NawaAsk icon appears in the toolbar. Click it to open the side panel.
 
 Other commands: `bun run compile` (typecheck), `bun run zip` (store package).
 
