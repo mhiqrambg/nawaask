@@ -2,6 +2,8 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
+  /** Selected page text this user message was asked about. */
+  context?: string;
   createdAt: number;
   error?: string;
   model?: string;

@@ -4,7 +4,6 @@ import {
   streaming,
   errorMessage,
   pageContext,
-  selectedText,
   canSend,
   currentModel,
   startNewChat,
@@ -23,7 +22,7 @@ import type { JSX } from "preact";
 
 export default function ChatContainer() {
   const list = messages.value;
-  const empty = list.length === 0 && !selectedText.value && !pageContext.value;
+  const empty = list.length === 0 && !pageContext.value;
   const modelLabel = currentModel.value
     ? getModelLabel(currentModel.value.providerId, currentModel.value.modelId)
     : "No model";
@@ -94,22 +93,6 @@ export default function ChatContainer() {
                 aria-label="Remove page context"
                 onClick={() => {
                   pageContext.value = null;
-                }}
-              >
-                <X size={12} />
-              </button>
-            </div>
-          )}
-          {selectedText.value && (
-            <div class="flex items-center justify-between gap-2 rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2.5 py-2 text-[11px] text-[rgb(var(--color-muted))]">
-              <span class="truncate">Selected: {selectedText.value.text.slice(0, 120)}</span>
-              <button
-                type="button"
-                class="shrink-0 rounded p-0.5 hover:bg-[rgb(var(--color-bg))]"
-                title="Remove selection"
-                aria-label="Remove selection"
-                onClick={() => {
-                  selectedText.value = null;
                 }}
               >
                 <X size={12} />

@@ -6,8 +6,8 @@
 - **Provider API keys** stay in `chrome.storage.local`, sent only to the
   provider base URL you configured. Chrome storage is not encrypted; anyone
   with access to your browser profile can read it.
-- **Page content** is extracted only on your explicit action (toolbar click,
-  context menu, "summarize this page"). We send the minimum readable text,
+- **Page content** is extracted only on your explicit action (Ask pill click,
+  page attach, "summarize this page"). We send the minimum readable text,
   never the raw DOM, scripts, or credentials. Page text is treated as
   untrusted data (see SECURITY.md).
 - **NawaAsk servers**: zero requests. There is nothing to opt out of.

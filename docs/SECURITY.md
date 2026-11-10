@@ -10,9 +10,9 @@
   `iframe`, `object`, `embed` forbidden) → `dangerouslySetInnerHTML`.
 - **Page content is untrusted.** System prompt labels it data, not
   instructions; extraction strips scripts/nav/forms and caps length.
-- **Least privilege.** Permissions: `sidePanel`, `storage`, `contextMenus`,
-  `tabs`, `activeTab`; host `<all_urls>` (required for the toolbar/page
-  context); `clipboardWrite` optional. No remote code execution.
+- **Least privilege.** Permissions: `sidePanel`, `storage`, `tabs`,
+  `activeTab`; host `<all_urls>` (required for the Ask pill/page context);
+  `clipboardWrite` optional. No remote code execution.
 - **No secrets in the bundle.** `VITE_*` config carries only the public
   cloud base URL. Provider keys are user-entered at runtime.
 

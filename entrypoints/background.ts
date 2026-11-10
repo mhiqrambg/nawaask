@@ -1,4 +1,16 @@
+import type { AskAboutSelectionMessage } from "@/modules/browser/messaging";
+import { SELECTION_STORAGE_KEY } from "@/modules/browser/messaging";
+
+/** Live side-panel documents; a port disconnects when the panel closes. */
+const panelPorts = new Set<chrome.runtime.Port>();
+
 export default defineBackground(() => {
+  chrome.runtime.onConnect.addListener((port) => {
+    if (port.name !== "nawaask-panel") return;
+    panelPorts.add(port);
+    port.onDisconnect.addListener(() => panelPorts.delete(port));
+  });
+
   chrome.commands.onCommand.addListener((command) => {
     if (command !== "open-nawaask") return;
     void chrome.tabs
@@ -12,27 +24,34 @@ export default defineBackground(() => {
       });
   });
 
-  // Selection on any page: open the panel and attach the selected text.
-  // The open() call runs synchronously so the click gesture survives.
-  chrome.runtime.onMessage.addListener((message, sender) => {
-    if (message?.type !== "SELECTION_ATTACHED") return false;
-    const tabId = sender.tab?.id;
-    if (tabId === undefined) return false;
-    chrome.sidePanel.open({ tabId }).catch(() => {
-      // panel may already be open; payload below still lands
-    });
-    void chrome.storage.session
-      .set({
-        "nawa:pending-action": {
-          action: "custom" as const,
-          text: message.text ?? "",
-          title: sender.tab?.title ?? "",
-          url: sender.tab?.url ?? "",
-        },
-      })
-      .catch(() => {
-        // session storage unavailable; nothing to consume later
-      });
-    return false;
-  });
+  // The content script's "Ask NawaAsk" pill was clicked. Page clicks carry no
+  // extension gesture, so the panel cannot be opened from here; stash the
+  // selection and let the open panel consume it. Never sends a chat request.
+  chrome.runtime.onMessage.addListener(
+    (message: AskAboutSelectionMessage, sender, sendResponse) => {
+      if (message?.type !== "ASK_ABOUT_SELECTION") return false;
+      if (sender.tab?.id === undefined) return false;
+
+      const text = typeof message.payload?.text === "string" ? message.payload.text : "";
+      if (!text.trim()) return false;
+
+      // Keep the channel open until the write settles: returning false here
+      // would let the worker go idle before storage commits.
+      void chrome.storage.session
+        .set({
+          [SELECTION_STORAGE_KEY]: {
+            text,
+            title: typeof message.payload.title === "string" ? message.payload.title : "",
+            url: typeof message.payload.url === "string" ? message.payload.url : "",
+          },
+        })
+        .then(() => {
+          sendResponse({ delivered: panelPorts.size > 0 });
+        })
+        .catch(() => {
+          sendResponse({ delivered: false, stored: false });
+        });
+      return true;
+    },
+  );
 });

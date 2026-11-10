@@ -23,8 +23,9 @@ MODE CLOUD (only when VITE_NAWAASK_CLOUD_API_BASE_URL is set)
 
 ## Extension layers
 
-- `entrypoints/` — MV3 shell: background (menus, side panel, commands),
-  content (dependency-free toolbar + page extraction), sidepanel/options/popup.
+- `entrypoints/` — MV3 shell: background (side panel, selection relay,
+  commands), content (dependency-free Ask pill + page extraction),
+  sidepanel/options/popup.
 - `composables/` — Preact-signal state: useChat, useProviders, useSettings,
   usePrompts, useView, useModelSelector.
 - `modules/ai/` — Provider client (OpenAI-compatible + Anthropic Messages
@@ -45,8 +46,20 @@ user input → useChat.sendMessage → AIClient.chatStream → SSE deltas
 → persistInto (IndexedDB) + refreshHistory
 ```
 
-Selection/context-menu actions land in `chrome.storage.session`
-(`nawa:pending-action`), consumed once by the sidepanel on open.
+Selected text flow:
+
+```
+select text → "Ask NawaAsk" pill click (never automatic)
+→ ASK_ABOUT_SELECTION → background stores it in chrome.storage.session
+  (nawa:selected-context) and reports whether a panel is live
+→ sidepanel consumes it once into a composer context card (title/URL, remove)
+→ user types a question + Send:
+  Context / User Question / Instruction block → AIClient.chatStream
+```
+
+Selection never opens the panel by itself (page clicks carry no extension
+gesture) and never sends a request. The context is cleared on submit, so it
+cannot leak into later questions.
 
 ## Security boundaries
 

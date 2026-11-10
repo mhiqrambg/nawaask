@@ -1,4 +1,3 @@
-import type { SelectionActionId } from "@/modules/browser/messaging";
 
 export interface PromptTemplate {
   id: string;
@@ -86,35 +85,6 @@ export const BUILTIN_PROMPTS: PromptTemplate[] = [
     builtin: true,
   },
 ];
-
-const SELECTION_ACTION_PROMPT: Record<SelectionActionId, string> = {
-  explain: "explain-selection",
-  summarize: "summarize-selection",
-  translate: "translate-selection",
-  rewrite: "rewrite-selection",
-  ask: "ask-selection",
-};
-
-export function promptForSelectionAction(action: SelectionActionId): PromptTemplate {
-  const id = SELECTION_ACTION_PROMPT[action];
-  const found = BUILTIN_PROMPTS.find((p) => p.id === id);
-  if (found) return found;
-  const fallback = BUILTIN_PROMPTS.find((p) => p.id === "ask-selection");
-  if (!fallback) throw new Error("Built-in prompts missing");
-  return fallback;
-}
-
-export function fillPrompt(
-  template: string,
-  vars: { selection?: string; title?: string; url?: string; page?: string; language?: string },
-): string {
-  return template
-    .replace(/\{\{selection\}\}/g, vars.selection ?? "")
-    .replace(/\{\{title\}\}/g, vars.title ?? "")
-    .replace(/\{\{url\}\}/g, vars.url ?? "")
-    .replace(/\{\{page\}\}/g, vars.page ?? "")
-    .replace(/\{\{language\}\}/g, vars.language ?? "English");
-}
 
 export interface LanguageOption {
   code: string;

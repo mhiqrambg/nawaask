@@ -10,8 +10,6 @@ export interface Conversation {
   modelId: string;
   messages: ChatMessage[];
   pageContext?: string;
-  selectionContext?: string;
-  selectionAction?: string;
 }
 
 export interface ConversationMeta {

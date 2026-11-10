@@ -1,8 +1,8 @@
 # NawaAsk — Your AI, Anywhere on the Web
 
 Lightweight Chrome (MV3) AI assistant. Chat in the side panel, ask about selected
-text via a floating toolbar, summarize pages, and connect any OpenAI-compatible
-provider. Built with Bun + WXT + Preact + TypeScript. No React.
+text with a floating Ask NawaAsk pill, summarize pages, and connect any
+OpenAI-compatible provider. Built with Bun + WXT + Preact + TypeScript. No React.
 
 ## Quick start
 
@@ -75,9 +75,9 @@ Chat, model fetch, and connection tests follow the protocol and API on each card
 
 - Side-panel chat: streaming markdown + code highlight, copy, regenerate, stop,
   auto-scroll, suggested prompts, model switcher.
-- Select text → floating toolbar (Explain / Summarize / Translate / Rewrite /
-  Ask). Toggle in Settings → General.
-- Right-click menu: same actions + Summarize page.
+- Select text → floating **Ask NawaAsk** pill attaches the selection to the
+  composer as a removable context card (source title + URL). Nothing is sent
+  until you type a question and press Send. Selecting text never calls the AI.
 - `Ctrl+Shift+K` / `Cmd+Shift+K` opens the panel.
 - History: IndexedDB persistence, search, pin, rename, export `.md`.
 - Prompt library: 11 built-ins + custom templates
@@ -89,16 +89,16 @@ Chat, model fetch, and connection tests follow the protocol and API on each card
 - API keys live in `chrome.storage.local` on this device only, sent only to the
   configured provider base URL. Chrome storage is **not encrypted** — anyone
   with profile access can read it.
-- Page content is extracted only on explicit action (toolbar click, context
-  menu, "summarize this page"). Page text is treated as untrusted data:
+- Page content is extracted only on explicit action (Ask pill click, page
+  attach, "summarize this page"). Page text is treated as untrusted data:
   system prompt instructs the model not to follow instructions inside it.
 - Content scripts never see keys; keys never touch page DOM.
 
 ## Project layout
 
 ```
-entrypoints/  background.ts (menus, side panel, commands)
-              content.ts (selection toolbar, page extraction)
+entrypoints/  background.ts (side panel, selection relay, commands)
+              content.ts (Ask NawaAsk pill, page extraction)
               sidepanel/ options/ popup/
 components/   chat/ sidebar/ providers/ history/ options/ settings/ ui/
 composables/  useChat / useProviders / useSettings / usePrompts /

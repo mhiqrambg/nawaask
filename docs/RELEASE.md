@@ -11,8 +11,8 @@ bun run zip          # .output/nawaask-<version>-chrome.zip → upload
 
 1. Bump `version` in `package.json` (WXT syncs it into the manifest).
 2. Confirm `wxt.config.ts` permissions — no additions without a reason.
-3. Smoke test (see README): chat streaming, toolbar, context menu,
-   summarize page, history persist across restart, themes, bad-key error.
+3. Smoke test (see README): chat streaming, Ask pill context, summarize page,
+   history persist across restart, themes, bad-key error.
 4. Upload the ZIP to the Web Store dashboard; note the assigned extension
    ID for the backend allowlist.
 

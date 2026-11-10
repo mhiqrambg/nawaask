@@ -12,13 +12,9 @@ import {
 } from "@/modules/storage/conversations";
 import { loadSettings } from "@/modules/storage/settings";
 import { loadProviders } from "@/modules/storage/providers";
-import type { PageContextResult, SelectionActionId } from "@/modules/browser/messaging";
+import type { PageContextResult, SelectionContext } from "@/modules/browser/messaging";
+import { SELECTION_STORAGE_KEY } from "@/modules/browser/messaging";
 import { buildSystemPrompt } from "@/modules/prompts/system-prompts";
-import {
-  promptForSelectionAction,
-  fillPrompt,
-  resolveTranslationLanguage,
-} from "@/modules/prompts/templates";
 
 export const messages = signal<ChatMessage[]>([]);
 export const streaming = signal(false);
@@ -27,7 +23,7 @@ export const pageContext = signal<PageContextResult | null>(null);
 export const conversationId = signal<string | null>(null);
 export const currentModel = signal<{ providerId: string; modelId: string } | null>(null);
 export const historyMeta = signal<ConversationMeta[]>([]);
-export const selectedText = signal<{ text: string; title: string; url: string } | null>(null);
+export const selectedText = signal<SelectionContext | null>(null);
 
 let abortController: AbortController | null = null;
 
@@ -74,11 +70,7 @@ export async function loadConversation(id: string): Promise<void> {
   messages.value = [...conv.messages];
   conversationId.value = conv.id;
   currentModel.value = { providerId: conv.providerId, modelId: conv.modelId };
-  if (conv.selectionContext) {
-    selectedText.value = { text: conv.selectionContext, title: "", url: "" };
-  } else {
-    selectedText.value = null;
-  }
+  selectedText.value = null;
   pageContext.value = null;
 }
 
@@ -108,6 +100,10 @@ export function stopGeneration(): void {
   streaming.value = false;
 }
 
+function buildSelectionRequest(context: string, question: string): string {
+  return `Context:\n${context}\n\nUser Question:\n${question}\n\nInstruction:\nAnswer the user's question based on the selected text. Provide additional helpful context when necessary.`;
+}
+
 function toCompletionMessages(
   history: ChatMessage[],
   system: string,
@@ -115,7 +111,10 @@ function toCompletionMessages(
   const prior = history.filter((m) => m.role !== "system" && !m.error);
   return [
     { role: "system", content: system },
-    ...prior.map((m) => ({ role: m.role, content: m.content })),
+    ...prior.map((m) => ({
+      role: m.role,
+      content: m.role === "user" && m.context ? buildSelectionRequest(m.context, m.content) : m.content,
+    })),
   ];
 }
 
@@ -129,7 +128,6 @@ async function persistInto(convId: string, history: ChatMessage[]): Promise<void
         updatedAt: now,
         title: existing.pinned ? existing.title : deriveTitle(history),
         pageContext: pageContext.value?.mainText ?? existing.pageContext,
-        selectionContext: selectedText.value?.text ?? existing.selectionContext,
       }
     : {
         ...newConversation(
@@ -142,13 +140,12 @@ async function persistInto(convId: string, history: ChatMessage[]): Promise<void
         updatedAt: now,
         messages: history,
         pageContext: pageContext.value?.mainText,
-        selectionContext: selectedText.value?.text,
       };
   await putConversation(conv);
   await refreshHistory();
 }
 
-async function generate(history: ChatMessage[], userText: string): Promise<void> {
+async function generate(history: ChatMessage[]): Promise<void> {
   const model = currentModel.value;
   if (!model) {
     errorMessage.value = "No provider configured. Open Settings to add one.";
@@ -167,9 +164,10 @@ async function generate(history: ChatMessage[], userText: string): Promise<void>
 
   const settings = await loadSettings();
   const includePage = settings.includePageContext && Boolean(pageContext.value?.mainText);
+  const lastUser = [...history].reverse().find((m) => m.role === "user" && !m.error);
   const system = buildSystemPrompt({
     hasPageContext: includePage,
-    hasSelection: Boolean(selectedText.value),
+    hasSelection: Boolean(lastUser?.context),
     language: settings.language,
   });
   const convMessages = toCompletionMessages(history, system);
@@ -177,12 +175,6 @@ async function generate(history: ChatMessage[], userText: string): Promise<void>
     convMessages.push({
       role: "user",
       content: `[Webpage context]\nTitle: ${pageContext.value.title}\nURL: ${pageContext.value.url}\n\n${pageContext.value.mainText}`,
-    });
-  }
-  if (selectedText.value) {
-    convMessages.push({
-      role: "user",
-      content: `[Selected text]\n${selectedText.value.text}`,
     });
   }
 
@@ -238,15 +230,20 @@ async function generate(history: ChatMessage[], userText: string): Promise<void>
 export async function sendMessage(text: string): Promise<void> {
   const trimmed = text.trim();
   if (!trimmed || streaming.value) return;
+  const context = selectedText.value?.text;
   const userMessage: ChatMessage = {
     id: crypto.randomUUID(),
     role: "user",
     content: trimmed,
+    ...(context ? { context } : {}),
     createdAt: Date.now(),
   };
   const history = [...messages.value, userMessage];
   messages.value = history;
-  await generate(history, trimmed);
+  // The context lives on the message from here on; the composer chip clears
+  // so it cannot leak into later, unrelated questions.
+  selectedText.value = null;
+  await generate(history);
 }
 
 export async function regenerate(): Promise<void> {
@@ -260,53 +257,33 @@ export async function regenerate(): Promise<void> {
   const lastUser = history[history.length - 1];
   if (!lastUser || lastUser.role !== "user") return;
   messages.value = history;
-  await generate(history, lastUser.content);
+  await generate(history);
 }
 
-/** Apply a selection action: populate selectedText then send a prompt. */
-export async function applySelectionAction(
-  action: SelectionActionId | "custom" | "summarize-page",
+/** Attach selected text as context without sending or generating anything. */
+export function attachSelectedContext(
   text: string,
   title: string,
   url: string,
-  promptTemplate?: string,
-): Promise<void> {
-  if (action === "summarize-page") {
-    const context = await fetchPageContext();
-    if (!context) {
-      errorMessage.value =
-        "Could not read this page. The extension cannot access this tab (e.g. system pages or the web store). Switch to a regular webpage and try again.";
-      return;
-    }
-    pageContext.value = context;
-    await sendMessage("Summarize this page into concise bullet points.");
-    return;
-  }
-  selectedText.value = { text, title, url };
-  const template =
-    promptTemplate ?? promptForSelectionAction(action === "custom" ? "ask" : action).template;
-  const settings = await loadSettings();
-  const language = resolveTranslationLanguage(settings.translationLanguage);
-  await sendMessage(fillPrompt(template, { selection: text, title, url, language }));
+): void {
+  const trimmed = text.trim();
+  if (!trimmed) return;
+  const current = selectedText.value;
+  if (current && current.text === trimmed && current.url === url) return;
+  selectedText.value = { text: trimmed, title, url };
 }
 
-/** Consume pending action set by background (context menu / selection toolbar). */
-export async function consumePendingAction(): Promise<void> {
+/** Consume a pending selection forwarded from the content script's pill. */
+export async function consumeSelectedContext(): Promise<void> {
   try {
-    const stored = await chrome.storage.session.get("nawa:pending-action");
-    const raw: unknown = stored["nawa:pending-action"];
+    const stored = await chrome.storage.session.get(SELECTION_STORAGE_KEY);
+    const raw: unknown = stored[SELECTION_STORAGE_KEY];
     if (!raw || typeof raw !== "object") return;
-    if (!("action" in raw) || typeof raw.action !== "string") return;
-    const text = "text" in raw && typeof raw.text === "string" ? raw.text : "";
+    if (!("text" in raw) || typeof raw.text !== "string") return;
     const title = "title" in raw && typeof raw.title === "string" ? raw.title : "";
     const url = "url" in raw && typeof raw.url === "string" ? raw.url : "";
-    await chrome.storage.session.remove("nawa:pending-action");
-    await applySelectionAction(
-      raw.action as SelectionActionId | "custom" | "summarize-page",
-      text,
-      title,
-      url,
-    );
+    await chrome.storage.session.remove(SELECTION_STORAGE_KEY);
+    attachSelectedContext(raw.text, title, url);
   } catch {
     // session storage unavailable; ignore
   }

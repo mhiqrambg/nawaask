@@ -8,7 +8,7 @@ export default defineConfig({
     name: "NawaAsk",
     short_name: "NawaAsk",
     description: "Your AI, Anywhere on the Web.",
-    permissions: ["sidePanel", "storage", "contextMenus", "tabs", "activeTab"],
+    permissions: ["sidePanel", "storage", "tabs", "activeTab"],
     host_permissions: ["<all_urls>"],
     optional_permissions: ["clipboardWrite"],
     commands: {
