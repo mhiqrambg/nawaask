@@ -1,8 +1,7 @@
 import { signal } from "@preact/signals";
 import type { AIProvider, AIModel } from "@/modules/ai/types";
-import { PROVIDER_PRESETS } from "@/modules/ai/provider-presets";
 import { AIClient } from "@/modules/ai/client";
-import { cloneProviders, loadProviders, saveProviders } from "@/modules/storage/providers";
+import { loadProviders, saveProviders } from "@/modules/storage/providers";
 
 export const providers = signal<AIProvider[]>([]);
 export const defaultProviderId = signal<string>("");
@@ -12,7 +11,7 @@ export async function initProviders(): Promise<void> {
   try {
     providers.value = await loadProviders();
   } catch {
-    providers.value = cloneProviders(PROVIDER_PRESETS);
+    providers.value = [];
   }
   try {
     await readDefaults();
@@ -44,30 +43,14 @@ export async function addProvider(provider: AIProvider): Promise<void> {
   await saveProviders(providers.value);
 }
 
-/** Re-seed the 8 official presets (recovery when storage is empty/corrupt). */
-export async function resetToPresets(): Promise<void> {
-  providers.value = cloneProviders(PROVIDER_PRESETS);
+export async function toggleProviderEnabled(id: string, enabled: boolean): Promise<void> {
+  providers.value = providers.value.map((p) => (p.id === id ? { ...p, enabled } : p));
   await saveProviders(providers.value);
 }
 
 export async function removeProvider(id: string): Promise<void> {
   providers.value = providers.value.filter((p) => p.id !== id);
   await saveProviders(providers.value);
-}
-
-export async function toggleProviderEnabled(id: string, enabled: boolean): Promise<void> {
-  providers.value = providers.value.map((p) => (p.id === id ? { ...p, enabled } : p));
-  await saveProviders(providers.value);
-}
-
-export function createFromPreset(id: string): AIProvider | null {
-  const preset = PROVIDER_PRESETS.find((p) => p.id === id);
-  if (!preset) return null;
-  return {
-    ...preset,
-    custom: false,
-    models: preset.models.map((m) => ({ ...m })),
-  };
 }
 
 export function newCustomProvider(): AIProvider {

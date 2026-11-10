@@ -17,8 +17,8 @@ export interface AppSettings {
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
-  defaultProviderId: "openai",
-  defaultModelId: "gpt-4o-mini",
+  defaultProviderId: "",
+  defaultModelId: "",
   language: "en",
   enterToSend: true,
   autoScroll: true,

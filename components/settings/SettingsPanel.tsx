@@ -1,18 +1,18 @@
-import { useState } from "preact/hooks";
 import { signal } from "@preact/signals";
 import { settings, updateSettings, setTheme } from "@/composables/useSettings";
 import {
   providers,
   updateProvider,
   removeProvider,
-  resetToPresets,
+  addProvider,
   toggleProviderEnabled,
   testProvider,
   refreshModels,
+  newCustomProvider,
 } from "@/composables/useProviders";
-import { isCustomProvider, protocolOf } from "@/modules/ai/provider-presets";
+import { protocolOf } from "@/modules/ai/protocol";
 import { setSettingsOpen } from "@/composables/useView";
-import { IconChevron, IconClose } from "@/components/ui/icons";
+import { IconClose, IconPlus } from "@/components/ui/icons";
 import type { AIProvider, ProviderProtocol } from "@/modules/ai/types";
 
 const testStatus = signal<Record<string, string>>({});
@@ -21,7 +21,7 @@ function setProviderField(provider: AIProvider, patch: Partial<AIProvider>): voi
   void updateProvider({ ...provider, ...patch });
 }
 
-function ProviderCard({ provider, showProtocol }: { provider: AIProvider; showProtocol: boolean }) {
+function ProviderCard({ provider }: { provider: AIProvider }) {
   const p = provider;
   const protocol = protocolOf(p);
   return (
@@ -38,11 +38,9 @@ function ProviderCard({ provider, showProtocol }: { provider: AIProvider; showPr
           {p.name}
         </label>
         <div class="flex items-center gap-2 text-[11px]">
-          {showProtocol && (
-            <span class="rounded border border-[rgb(var(--color-border))] px-1.5 py-0.5 text-[10.5px] text-[rgb(var(--color-muted))]">
-              {protocol === "anthropic" ? "Anthropic" : "OpenAI"}
-            </span>
-          )}
+          <span class="rounded border border-[rgb(var(--color-border))] px-1.5 py-0.5 text-[10.5px] text-[rgb(var(--color-muted))]">
+            {protocol === "anthropic" ? "Anthropic" : "OpenAI"}
+          </span>
           <button
             type="button"
             class="text-red-400 hover:underline"
@@ -52,22 +50,20 @@ function ProviderCard({ provider, showProtocol }: { provider: AIProvider; showPr
           </button>
         </div>
       </div>
-      {showProtocol && (
-        <label class="block pb-1.5">
-          <span class="text-[11px] text-[rgb(var(--color-muted))]">Protocol</span>
-          <select
-            class="w-full rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2 py-1 text-[12px]"
-            value={protocol}
-            onChange={(e) => {
-              const next = (e.currentTarget as HTMLSelectElement).value as ProviderProtocol;
-              applyProtocol(p, next);
-            }}
-          >
-            <option value="openai">OpenAI Compatible</option>
-            <option value="anthropic">Anthropic Compatible</option>
-          </select>
-        </label>
-      )}
+      <label class="block pb-1.5">
+        <span class="text-[11px] text-[rgb(var(--color-muted))]">Protocol</span>
+        <select
+          class="w-full rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2 py-1 text-[12px]"
+          value={protocol}
+          onChange={(e) => {
+            const next = (e.currentTarget as HTMLSelectElement).value as ProviderProtocol;
+            applyProtocol(p, next);
+          }}
+        >
+          <option value="openai">OpenAI Compatible</option>
+          <option value="anthropic">Anthropic Compatible</option>
+        </select>
+      </label>
       <label class="block pb-1.5">
         <span class="text-[11px] text-[rgb(var(--color-muted))]">Base URL</span>
         <input
@@ -155,10 +151,6 @@ function applyProtocol(p: AIProvider, next: ProviderProtocol): void {
 }
 
 export default function SettingsPanel() {
-  const [openOfficial, setOpenOfficial] = useState(true);
-  const [openCustom, setOpenCustom] = useState(true);
-  const official = providers.value.filter((p) => !isCustomProvider(p));
-  const custom = providers.value.filter((p) => isCustomProvider(p));
 
   return (
     <div class="flex h-full flex-col">
@@ -234,85 +226,43 @@ export default function SettingsPanel() {
         </section>
 
         {/* Providers */}
-        <section class="flex flex-col gap-3">
-          <h3 class="text-[11px] uppercase tracking-wide text-[rgb(var(--color-muted))]">
-            AI Providers
-          </h3>
+        <section class="flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <h3 class="text-[11px] uppercase tracking-wide text-[rgb(var(--color-muted))]">
+              Custom Providers
+            </h3>
+            <button
+              type="button"
+              class="flex items-center gap-1 rounded-lg border border-[rgb(var(--color-border))] px-2 py-0.5 text-[11px] hover:border-[rgb(var(--color-accent))]"
+              onClick={() => void addProvider(newCustomProvider())}
+            >
+              <IconPlus size={12} />
+              New
+            </button>
+          </div>
           {providers.value.length === 0 ? (
             <div class="rounded-xl border border-dashed border-[rgb(var(--color-border))] px-3 py-4 text-center">
               <p class="text-[12px] text-[rgb(var(--color-muted))]">
-                No providers loaded. Storage may be empty or unreadable.
+                No providers yet. Add one to start chatting.
               </p>
               <button
                 type="button"
                 class="mt-2 rounded-lg border border-[rgb(var(--color-border))] px-3 py-1.5 text-[12px] hover:border-[rgb(var(--color-accent))]"
-                onClick={() => void resetToPresets()}
+                onClick={() => void addProvider(newCustomProvider())}
               >
-                Load official providers
+                Add custom provider
               </button>
             </div>
           ) : (
-            <>
-              <div>
-                <button
-                  type="button"
-                  class="flex items-center gap-1.5 pb-1.5 text-[12.5px] font-semibold"
-                  aria-expanded={openOfficial}
-                  onClick={() => setOpenOfficial((v) => !v)}
-                >
-                  <span
-                    class={`inline-block transition-transform ${openOfficial ? "" : "-rotate-90"}`}
-                    aria-hidden="true"
-                  >
-                    <IconChevron size={14} />
-                  </span>
-                  Providers
-                  <span class="rounded-full bg-[rgb(var(--color-surface))] px-2 py-0.5 text-[10.5px] font-normal text-[rgb(var(--color-muted))]">
-                    {official.length}
-                  </span>
-                </button>
-                {openOfficial && (
-                  <div class="flex flex-col gap-2">
-                    {official.map((p) => (
-                      <ProviderCard key={p.id} provider={p} showProtocol={false} />
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div>
-                <button
-                  type="button"
-                  class="flex items-center gap-1.5 pb-1.5 text-[12.5px] font-semibold"
-                  aria-expanded={openCustom}
-                  onClick={() => setOpenCustom((v) => !v)}
-                >
-                  <span
-                    class={`inline-block transition-transform ${openCustom ? "" : "-rotate-90"}`}
-                    aria-hidden="true"
-                  >
-                    <IconChevron size={14} />
-                  </span>
-                  Custom Providers
-                  <span class="rounded-full bg-[rgb(var(--color-surface))] px-2 py-0.5 text-[10.5px] font-normal text-[rgb(var(--color-muted))]">
-                    {custom.length}
-                  </span>
-                </button>
-                {openCustom && (
-                  <div class="flex flex-col gap-2">
-                    {custom.length === 0 ? (
-                      <p class="rounded-xl border border-dashed border-[rgb(var(--color-border))] px-3 py-3 text-center text-[11.5px] text-[rgb(var(--color-muted))]">
-                        None yet. Add one in Options → Providers → Custom Providers.
-                      </p>
-                    ) : (
-                      custom.map((p) => (
-                        <ProviderCard key={p.id} provider={p} showProtocol />
-                      ))
-                    )}
-                  </div>
-                )}
-              </div>
-            </>
+            providers.value.map((p) => <ProviderCard key={p.id} provider={p} />)
           )}
+          <button
+            type="button"
+            class="self-start text-[11px] text-[rgb(var(--color-muted))] underline"
+            onClick={() => void chrome.runtime.openOptionsPage()}
+          >
+            Open full settings page
+          </button>
         </section>
 
         <p class="text-[10.5px] text-[rgb(var(--color-muted))]">

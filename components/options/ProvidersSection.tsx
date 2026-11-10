@@ -1,4 +1,3 @@
-import { useState } from "preact/hooks";
 import { signal } from "@preact/signals";
 import {
   providers,
@@ -8,15 +7,14 @@ import {
   toggleProviderEnabled,
   testProvider,
   refreshModels,
-  createFromPreset,
   newCustomProvider,
   setDefault,
   defaultProviderId,
   defaultModelId,
 } from "@/composables/useProviders";
-import { isCustomProvider, protocolOf, PROVIDER_PRESETS } from "@/modules/ai/provider-presets";
+import { protocolOf } from "@/modules/ai/protocol";
 import type { AIProvider, ProviderProtocol } from "@/modules/ai/types";
-import { IconChevron, IconPlus } from "@/components/ui/icons";
+import { IconPlus } from "@/components/ui/icons";
 
 const status = signal<Record<string, string>>({});
 
@@ -51,7 +49,7 @@ const PROTOCOLS: { id: ProviderProtocol; label: string; hint: string }[] = [
   { id: "anthropic", label: "Anthropic Compatible", hint: "https://api.anthropic.com/v1" },
 ];
 
-function ProviderCard({ provider, showProtocol }: { provider: AIProvider; showProtocol: boolean }) {
+function ProviderCard({ provider }: { provider: AIProvider }) {
   const p = provider;
   const protocol = protocolOf(p);
   return (
@@ -68,11 +66,9 @@ function ProviderCard({ provider, showProtocol }: { provider: AIProvider; showPr
           {p.name}
         </label>
         <div class="flex items-center gap-2 text-[11.5px]">
-          {showProtocol && (
-            <span class="rounded border border-[rgb(var(--color-border))] px-1.5 py-0.5 text-[10.5px] text-[rgb(var(--color-muted))]">
-              {protocol === "anthropic" ? "Anthropic" : "OpenAI"}
-            </span>
-          )}
+          <span class="rounded border border-[rgb(var(--color-border))] px-1.5 py-0.5 text-[10.5px] text-[rgb(var(--color-muted))]">
+            {protocol === "anthropic" ? "Anthropic" : "OpenAI"}
+          </span>
           {defaultProviderId.value === p.id && (
             <span class="text-[rgb(var(--color-muted))]">Default</span>
           )}
@@ -96,34 +92,28 @@ function ProviderCard({ provider, showProtocol }: { provider: AIProvider; showPr
             onInput={(e) => patch(p, { name: (e.currentTarget as HTMLInputElement).value })}
           />
         </label>
-        {showProtocol ? (
-          <label class="flex flex-col gap-1">
-            <span class="text-[11px] text-[rgb(var(--color-muted))]">Protocol</span>
-            <select
-              class="rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-[12.5px]"
-              value={protocol}
-              onChange={(e) => {
-                const next = (e.currentTarget as HTMLSelectElement).value as ProviderProtocol;
-                const hint = PROTOCOLS.find((pr) => pr.id === next)?.hint ?? "";
-                patch(p, {
-                  protocol: next,
-                  baseUrl:
-                    p.baseUrl === "" || p.baseUrl === "https://api.example.com/v1"
-                      ? hint
-                      : p.baseUrl,
-                });
-              }}
-            >
-              {PROTOCOLS.map((pr) => (
-                <option key={pr.id} value={pr.id}>
-                  {pr.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : (
-          <span />
-        )}
+        <label class="flex flex-col gap-1">
+          <span class="text-[11px] text-[rgb(var(--color-muted))]">Protocol</span>
+          <select
+            class="rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-[12.5px]"
+            value={protocol}
+            onChange={(e) => {
+              const next = (e.currentTarget as HTMLSelectElement).value as ProviderProtocol;
+              const hint = PROTOCOLS.find((pr) => pr.id === next)?.hint ?? "";
+              patch(p, {
+                protocol: next,
+                baseUrl:
+                  p.baseUrl === "" || p.baseUrl === "https://api.example.com/v1" ? hint : p.baseUrl,
+              });
+            }}
+          >
+            {PROTOCOLS.map((pr) => (
+              <option key={pr.id} value={pr.id}>
+                {pr.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <label class="flex flex-col gap-1 sm:col-span-2">
           <span class="text-[11px] text-[rgb(var(--color-muted))]">Base URL</span>
           <input
@@ -199,122 +189,30 @@ function ProviderCard({ provider, showProtocol }: { provider: AIProvider; showPr
   );
 }
 
-function GroupHeader({
-  title,
-  count,
-  open,
-  onToggle,
-  action,
-}: {
-  title: string;
-  count: number;
-  open: boolean;
-  onToggle: () => void;
-  action: preact.ComponentChildren;
-}) {
-  return (
-    <div class="mb-2 flex items-center justify-between">
-      <button
-        type="button"
-        class="flex items-center gap-1.5 text-[13.5px] font-semibold"
-        aria-expanded={open}
-        onClick={onToggle}
-      >
-        <span
-          class={`inline-block transition-transform ${open ? "" : "-rotate-90"}`}
-          aria-hidden="true"
-        >
-          <IconChevron />
-        </span>
-        {title}
-        <span class="rounded-full bg-[rgb(var(--color-surface))] px-2 py-0.5 text-[11px] font-normal text-[rgb(var(--color-muted))]">
-          {count}
-        </span>
-      </button>
-      {action}
-    </div>
-  );
-}
-
 export default function ProvidersSection() {
-  const [openOfficial, setOpenOfficial] = useState(true);
-  const [openCustom, setOpenCustom] = useState(true);
-  const official = providers.value.filter((p) => !isCustomProvider(p));
-  const custom = providers.value.filter((p) => isCustomProvider(p));
-
   return (
-    <section class="flex flex-col gap-5">
-      <div>
-        <GroupHeader
-          title="Providers"
-          count={official.length}
-          open={openOfficial}
-          onToggle={() => setOpenOfficial((v) => !v)}
-          action={<span class="text-[11px] text-[rgb(var(--color-muted))]">Official presets</span>}
-        />
-        {openOfficial && (
-          <div class="flex flex-col gap-3">
-            <div class="flex flex-wrap gap-1.5">
-              {PROVIDER_PRESETS.map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  class="rounded-lg border border-dashed border-[rgb(var(--color-border))] px-2.5 py-1 text-[12px] hover:border-[rgb(var(--color-accent))]"
-                  title={`Add another ${preset.name} profile`}
-                  onClick={() => {
-                    const copy = createFromPreset(preset.id);
-                    if (copy) void addProvider({ ...copy, id: `${preset.id}-${Date.now()}` });
-                  }}
-                >
-                  + {preset.name}
-                </button>
-              ))}
-            </div>
-            {official.length === 0 ? (
-              <p class="rounded-xl border border-dashed border-[rgb(var(--color-border))] px-3 py-4 text-center text-[12px] text-[rgb(var(--color-muted))]">
-                No official providers yet. Add one above.
-              </p>
-            ) : (
-              official.map((p) => <ProviderCard key={p.id} provider={p} showProtocol={false} />)
-            )}
-          </div>
-        )}
+    <section class="flex flex-col gap-4">
+      <div class="flex items-center justify-between">
+        <p class="text-[11.5px] text-[rgb(var(--color-muted))]">
+          OpenAI-compatible or Anthropic-compatible endpoints. Chat, model fetch,
+          and connection tests follow the protocol set on each card.
+        </p>
+        <button
+          type="button"
+          class="flex shrink-0 items-center gap-1 rounded-lg border border-[rgb(var(--color-border))] px-2.5 py-1 text-[12px] hover:border-[rgb(var(--color-accent))]"
+          onClick={() => void addProvider(newCustomProvider())}
+        >
+          <IconPlus size={12} />
+          New custom
+        </button>
       </div>
-
-      <div>
-        <GroupHeader
-          title="Custom Providers"
-          count={custom.length}
-          open={openCustom}
-          onToggle={() => setOpenCustom((v) => !v)}
-          action={
-            <button
-              type="button"
-              class="flex items-center gap-1 rounded-lg border border-[rgb(var(--color-border))] px-2.5 py-1 text-[12px] hover:border-[rgb(var(--color-accent))]"
-              onClick={() => void addProvider(newCustomProvider())}
-            >
-              <IconPlus size={12} />
-              New custom
-            </button>
-          }
-        />
-        {openCustom && (
-          <div class="flex flex-col gap-3">
-            <p class="text-[11.5px] text-[rgb(var(--color-muted))]">
-              Any OpenAI-compatible or Anthropic-compatible endpoint. Pick the
-              protocol per provider; chat, model fetch, and tests follow it.
-            </p>
-            {custom.length === 0 ? (
-              <p class="rounded-xl border border-dashed border-[rgb(var(--color-border))] px-3 py-4 text-center text-[12px] text-[rgb(var(--color-muted))]">
-                No custom providers yet. Create one to connect a self-hosted or
-                third-party endpoint.
-              </p>
-            ) : (
-              custom.map((p) => <ProviderCard key={p.id} provider={p} showProtocol />)
-            )}
-          </div>
-        )}
-      </div>
+      {providers.value.length === 0 ? (
+        <p class="rounded-xl border border-dashed border-[rgb(var(--color-border))] px-3 py-4 text-center text-[12px] text-[rgb(var(--color-muted))]">
+          No providers yet. Add one to start chatting.
+        </p>
+      ) : (
+        providers.value.map((p) => <ProviderCard key={p.id} provider={p} />)
+      )}
     </section>
   );
 }

@@ -48,19 +48,17 @@ Details: `docs/ARCHITECTURE.md`, `docs/CLOUD_ARCHITECTURE.md`,
 
 ## Configure a provider
 
-Options page → Providers tab. Two collapsible groups:
+Options page → Providers, or sidepanel → gear icon. Only custom providers
+exist — no built-in presets. Click **New custom**, then per card:
 
-- **Providers** — official presets (OpenAI, DeepSeek, OpenRouter, Qwen, Kimi,
-  Groq, Together AI, Ollama). The `+ Name` buttons add extra profiles.
-- **Custom Providers** — your own endpoints. Per provider pick **OpenAI
-  Compatible** (`POST {base}/chat/completions`, SSE with `[DONE]`) or
-  **Anthropic Compatible** (`POST {base}/messages`, `x-api-key` +
-  `anthropic-version: 2023-06-01`, event-stream deltas). Chat, model fetch,
-  and connection test all follow the chosen protocol.
+- **Protocol**: **OpenAI Compatible** (`POST {base}/chat/completions`, SSE
+  with `[DONE]`) or **Anthropic Compatible** (`POST {base}/messages`,
+  `x-api-key` + `anthropic-version: 2023-06-01`, event-stream deltas).
+- **Base URL** (include `/v1` where required) and **API key**.
+- **Test connection**, then **Fetch from API** for `/models` (or add a model
+  ID manually). Click a model chip to set the default.
 
-Per provider: paste Base URL (include `/v1` where required) and API key →
-**Test connection** → **Fetch from API** for `/models` (or add a model ID
-manually) → click a model chip to set the default.
+Chat, model fetch, and connection tests follow the protocol on each card.
 
 ### Provider notes
 
@@ -103,7 +101,7 @@ entrypoints/  background.ts (menus, side panel, commands)
 components/   chat/ sidebar/ providers/ history/ options/ settings/ ui/
 composables/  useChat / useProviders / useSettings / usePrompts /
               useView / useModelSelector (Preact signals)
-modules/      ai/ (client, streaming SSE, presets, types)
+modules/      ai/ (client, streaming SSE, protocol, types)
               browser/ (messaging types, page-context)
               storage/ (settings, providers, IndexedDB conversations)
               prompts/ (templates, system prompts)

@@ -1,19 +1,11 @@
 import type { AIProvider } from "@/modules/ai/types";
-import { PROVIDER_PRESETS } from "@/modules/ai/provider-presets";
 import { STORAGE_KEYS } from "@/utils/constants";
 
-export function cloneProviders(list: AIProvider[]): AIProvider[] {
-  return list.map((p) => ({ ...p, models: p.models.map((m) => ({ ...m })) }));
-}
-
+/** Stored providers, or empty when the user has none yet. No seeding. */
 export async function loadProviders(): Promise<AIProvider[]> {
   const stored = await chrome.storage.local.get(STORAGE_KEYS.providers);
   const value = stored[STORAGE_KEYS.providers];
-  if (!Array.isArray(value) || value.length === 0) {
-    const seeded = cloneProviders(PROVIDER_PRESETS);
-    await saveProviders(seeded);
-    return seeded;
-  }
+  if (!Array.isArray(value)) return [];
   return value as AIProvider[];
 }
 

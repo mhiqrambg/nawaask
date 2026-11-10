@@ -27,8 +27,8 @@ MODE CLOUD (only when VITE_NAWAASK_CLOUD_API_BASE_URL is set)
   content (dependency-free toolbar + page extraction), sidepanel/options/popup.
 - `composables/` — Preact-signal state: useChat, useProviders, useSettings,
   usePrompts, useView, useModelSelector.
-- `modules/ai/` — Provider-agnostic OpenAI-compatible client, SSE parser,
-  presets, strict error mapping (401/404/429).
+- `modules/ai/` — Provider client (OpenAI-compatible + Anthropic Messages
+  protocols), SSE parsers, strict error mapping (401/404/429).
 - `modules/browser/` — Typed cross-context contracts, readable-text extraction.
 - `modules/storage/` — chrome.storage wrappers + IndexedDB conversation store.
 - `modules/prompts/` — Built-in + custom templates with `{{selection}}`,
