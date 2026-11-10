@@ -5,6 +5,7 @@ import {
   updateProvider,
   removeProvider,
   addProvider,
+  hasUnfinishedProvider,
   toggleProviderEnabled,
   testProvider,
   refreshModels,
@@ -250,7 +251,13 @@ export default function SettingsPanel() {
             </h3>
             <button
               type="button"
-              class="flex items-center gap-1 rounded-lg border border-[rgb(var(--color-border))] px-2 py-0.5 text-[11px] hover:border-[rgb(var(--color-accent))]"
+              class="flex items-center gap-1 rounded-lg border border-[rgb(var(--color-border))] px-2 py-0.5 text-[11px] hover:border-[rgb(var(--color-accent))] disabled:opacity-40"
+              disabled={hasUnfinishedProvider()}
+              title={
+                hasUnfinishedProvider()
+                  ? "Finish configuring the new provider first"
+                  : "Add a custom provider"
+              }
               onClick={() => void addProvider(newCustomProvider())}
             >
               <IconPlus size={12} />

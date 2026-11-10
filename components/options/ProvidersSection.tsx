@@ -8,6 +8,7 @@ import {
   testProvider,
   refreshModels,
   newCustomProvider,
+  hasUnfinishedProvider,
   setDefault,
   defaultProviderId,
   defaultModelId,
@@ -216,7 +217,13 @@ export default function ProvidersSection() {
         </p>
         <button
           type="button"
-          class="flex shrink-0 items-center gap-1 rounded-lg border border-[rgb(var(--color-border))] px-2.5 py-1 text-[12px] hover:border-[rgb(var(--color-accent))]"
+          class="flex shrink-0 items-center gap-1 rounded-lg border border-[rgb(var(--color-border))] px-2.5 py-1 text-[12px] hover:border-[rgb(var(--color-accent))] disabled:opacity-40"
+          disabled={hasUnfinishedProvider()}
+          title={
+            hasUnfinishedProvider()
+              ? "Finish configuring the new provider first"
+              : "Add a custom provider"
+          }
           onClick={() => void addProvider(newCustomProvider())}
         >
           <IconPlus size={12} />

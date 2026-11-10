@@ -53,6 +53,12 @@ export async function removeProvider(id: string): Promise<void> {
   await saveProviders(providers.value);
 }
 
+/** A fresh card is one still holding the example URL with no API key. */
+export function hasUnfinishedProvider(): boolean {
+  return providers.value.some(
+    (p) => !p.apiKey.trim() && p.baseUrl === "https://api.example.com/v1",
+  );
+}
 export function newCustomProvider(): AIProvider {
   return {
     id: crypto.randomUUID(),
