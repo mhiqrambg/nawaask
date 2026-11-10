@@ -20,6 +20,12 @@ export default defineConfig({
         description: "Open NawaAsk side panel",
       },
     },
+    action: {
+      default_icon: {
+        16: "icon/16.png",
+        32: "icon/32.png",
+      },
+    },
   },
   vite: () => ({
     plugins: [preact(), tailwindcss()],
