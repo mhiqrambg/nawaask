@@ -1,0 +1,34 @@
+{
+  "name": "nawaask",
+  "version": "0.1.0",
+  "devDependencies": {
+    "@preact/preset-vite": "^2.10.6",
+    "@tailwindcss/vite": "^4.3.5",
+    "@types/chrome": "^0.3.7",
+    "dompurify": "^3.4.17",
+    "eslint": "^10.14.0",
+    "highlight.js": "^11.12.0",
+    "marked": "^18.2.0",
+    "tailwindcss": "^4.3.5",
+    "typescript": "^5.9.3",
+    "web-ext": "^10.5.0",
+    "wxt": "^0.21.3"
+  },
+  "description": "NawaAsk — Your AI, Anywhere on the Web. Privacy-first Chrome AI assistant.",
+  "private": true,
+  "scripts": {
+    "dev": "wxt",
+    "dev:firefox": "wxt -b firefox",
+    "build": "wxt build",
+    "build:firefox": "wxt build -b firefox",
+    "zip": "wxt zip",
+    "zip:firefox": "wxt zip -b firefox",
+    "compile": "tsc --noEmit",
+    "postinstall": "wxt prepare"
+  },
+  "type": "module",
+  "dependencies": {
+    "@preact/signals": "^2.11.4",
+    "preact": "^11.2.0"
+  }
+}
