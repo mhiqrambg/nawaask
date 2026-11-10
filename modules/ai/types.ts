@@ -24,10 +24,14 @@ export interface ScreenshotAttachment {
 export interface AIModel {
   id: string;
   name: string;
+  /** Short capability note shown in the model dropdown. */
+  description?: string;
   contextLength?: number;
   supportsStreaming: boolean;
   supportsVision?: boolean;
   supportsTools?: boolean;
+  /** Show the Extended Thinking toggle for this model. */
+  supportsExtendedThinking?: boolean;
 }
 
 export type ProviderProtocol = "openai" | "anthropic";

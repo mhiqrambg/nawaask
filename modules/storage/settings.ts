@@ -15,6 +15,8 @@ export interface AppSettings {
   theme: ThemeMode;
   /** Operating mode. BYOK is default; cloud stays unavailable until configured. */
   mode: NawaAskMode;
+  /** Pass reasoning/extended-thinking hint to providers that support it. */
+  extendedThinking: boolean;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -28,6 +30,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   contextCharLimit: 12000,
   theme: "system",
   mode: "byok",
+  extendedThinking: false,
 };
 
 const SETTINGS_KEY = "nawa:settings";

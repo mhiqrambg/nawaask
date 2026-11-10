@@ -3,15 +3,11 @@ import {
   streaming,
   errorMessage,
   pageContext,
-  canSend,
-  currentModel,
   startNewChat,
   sendMessage,
   stopGeneration,
   regenerate,
 } from "@/composables/useChat";
-import { getModelLabel } from "@/composables/useProviders";
-import { toggleModelSelector } from "@/composables/useModelSelector";
 import { setSettingsOpen } from "@/composables/useView";
 import { settings } from "@/composables/useSettings";
 import ChatMessage from "./ChatMessage";
@@ -29,9 +25,6 @@ const QUICK_ACTIONS = [
 export default function ChatContainer() {
   const list = messages.value;
   const empty = list.length === 0 && !pageContext.value;
-  const modelLabel = currentModel.value
-    ? getModelLabel(currentModel.value.providerId, currentModel.value.modelId)
-    : "No model";
 
   return (
     <div class="flex h-full flex-col">
@@ -127,17 +120,6 @@ export default function ChatContainer() {
           onStop={() => stopGeneration()}
           streaming={streaming.value}
         />
-        <button
-          type="button"
-          class="mt-2 w-full rounded-lg border border-[rgb(var(--color-border))] px-2 py-1 text-[11px] text-[rgb(var(--color-muted))] hover:border-[rgb(var(--color-accent))]"
-          onClick={() => toggleModelSelector()}
-          disabled={streaming.value}
-          aria-label="Switch model"
-        >
-          Model: {modelLabel}
-          {streaming.value ? " · streaming" : ""}
-          {canSend.value ? "" : " (configure)"}
-        </button>
         <p class="mt-1.5 text-center text-[10px] text-[rgb(var(--color-muted))]">
           <a
             href="https://mibp.dev/"
