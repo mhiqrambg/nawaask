@@ -1,12 +1,25 @@
 import { signal } from "@preact/signals";
-import { Paperclip, Send, Square } from "lucide-preact";
+import { Globe, Paperclip, Send, Square } from "lucide-preact";
 import { settings } from "@/composables/useSettings";
+import { fetchPageContext, pageContext } from "@/composables/useChat";
 import type { JSX } from "preact";
 
 interface Props {
   onSend: (text: string) => void;
   onStop: () => void;
   streaming: boolean;
+}
+
+const attaching = signal(false);
+
+async function attachPage(): Promise<void> {
+  attaching.value = true;
+  try {
+    const context = await fetchPageContext();
+    if (context) pageContext.value = context;
+  } finally {
+    attaching.value = false;
+  }
 }
 
 const draft = signal("");
@@ -29,6 +42,18 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
   return (
     <div class="flex flex-col">
       <div class="flex items-end gap-2 rounded-2xl border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-3 py-2">
+        <button
+          type="button"
+          class={`rounded p-1 hover:bg-[rgb(var(--color-bg))] ${
+            pageContext.value ? "text-[rgb(var(--color-accent))]" : "text-[rgb(var(--color-muted))]"
+          } disabled:opacity-40`}
+          title={pageContext.value ? `Page attached: ${pageContext.value.title}` : attaching.value ? "Reading page…" : "Attach current page"}
+          aria-label="Attach current page"
+          disabled={streaming || attaching.value || Boolean(pageContext.value)}
+          onClick={() => void attachPage()}
+        >
+          <Globe size={18} />
+        </button>
         <button
           type="button"
           class="rounded p-1 text-[rgb(var(--color-muted))] hover:bg-[rgb(var(--color-bg))]"

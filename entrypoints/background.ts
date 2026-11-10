@@ -95,18 +95,6 @@ export default defineBackground(() => {
         .catch(() => sendResponse({ ok: false }));
       return true;
     }
-    if (message?.type === "SELECTION_ACTION" && tabId !== undefined) {
-      // Gesture rule: open() runs synchronously here, before any await.
-      const opened = chrome.sidePanel.open({ tabId });
-      void opened.catch(() => {
-        // rejected open still leaves the payload below for manual open
-      });
-      void chrome.storage.session
-        .set({ "nawa:pending-action": message.payload })
-        .then(() => sendResponse({ ok: true }))
-        .catch(() => sendResponse({ ok: false }));
-      return true;
-    }
     return false;
   });
 });

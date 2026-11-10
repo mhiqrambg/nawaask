@@ -6,9 +6,10 @@ export interface AppSettings {
   defaultProviderId: string;
   defaultModelId: string;
   language: string;
+  /** BCP-47 code or "" for system default. Used as Translate target. */
+  translationLanguage: string;
   enterToSend: boolean;
   autoScroll: boolean;
-  showFloatingToolbar: boolean;
   includePageContext: boolean;
   contextCharLimit: number;
   theme: ThemeMode;
@@ -20,9 +21,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultProviderId: "",
   defaultModelId: "",
   language: "en",
+  translationLanguage: "",
   enterToSend: true,
   autoScroll: true,
-  showFloatingToolbar: true,
   includePageContext: true,
   contextCharLimit: 12000,
   theme: "system",

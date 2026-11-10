@@ -6,6 +6,7 @@ import {
   defaultModelId,
 } from "@/composables/useProviders";
 import CloudSection from "./CloudSection";
+import { TRANSLATION_LANGUAGES } from "@/modules/prompts/templates";
 import type { JSX } from "preact";
 
 export default function GeneralSection() {
@@ -79,6 +80,24 @@ export default function GeneralSection() {
             </select>
           </label>
         )}
+        <label class="flex flex-col gap-1">
+          <span class="text-[11px] text-[rgb(var(--color-muted))]">Translate to</span>
+          <select
+            class="rounded border border-[rgb(var(--color-border))] bg-[rgb(var(--color-bg))] px-2 py-1 text-[12.5px]"
+            value={settings.value.translationLanguage}
+            onChange={(e) => {
+              void updateSettings({
+                translationLanguage: (e.currentTarget as HTMLSelectElement).value,
+              });
+            }}
+          >
+            {TRANSLATION_LANGUAGES.map((l) => (
+              <option key={l.code || "auto"} value={l.code}>
+                {l.code === "" ? "System default" : l.label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
       <div class="flex flex-col gap-2">
@@ -102,18 +121,6 @@ export default function GeneralSection() {
             checked={settings.value.autoScroll}
             onChange={(e) =>
               void updateSettings({ autoScroll: (e.currentTarget as HTMLInputElement).checked })
-            }
-          />
-        </label>
-        <label class="flex items-center justify-between">
-          <span>Floating selection toolbar</span>
-          <input
-            type="checkbox"
-            checked={settings.value.showFloatingToolbar}
-            onChange={(e) =>
-              void updateSettings({
-                showFloatingToolbar: (e.currentTarget as HTMLInputElement).checked,
-              })
             }
           />
         </label>

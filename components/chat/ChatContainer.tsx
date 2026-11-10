@@ -18,7 +18,7 @@ import { setSettingsOpen } from "@/composables/useView";
 import { settings } from "@/composables/useSettings";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
-import { Plus, Settings } from "lucide-preact";
+import { Plus, Settings, X } from "lucide-preact";
 import type { JSX } from "preact";
 
 export default function ChatContainer() {
@@ -85,13 +85,35 @@ export default function ChatContainer() {
           class="flex flex-col overflow-y-auto px-3 py-3 gap-3"
         >
           {pageContext.value && (
-            <div class="rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2.5 py-2 text-[11px] text-[rgb(var(--color-muted))]">
-              Page context: {pageContext.value.title}
+            <div class="flex items-center justify-between gap-2 rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2.5 py-2 text-[11px] text-[rgb(var(--color-muted))]">
+              <span class="truncate">Page context: {pageContext.value.title}</span>
+              <button
+                type="button"
+                class="shrink-0 rounded p-0.5 hover:bg-[rgb(var(--color-bg))]"
+                title="Remove page context"
+                aria-label="Remove page context"
+                onClick={() => {
+                  pageContext.value = null;
+                }}
+              >
+                <X size={12} />
+              </button>
             </div>
           )}
           {selectedText.value && (
-            <div class="rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2.5 py-2 text-[11px] text-[rgb(var(--color-muted))]">
-              Selected: {selectedText.value.text.slice(0, 120)}
+            <div class="flex items-center justify-between gap-2 rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2.5 py-2 text-[11px] text-[rgb(var(--color-muted))]">
+              <span class="truncate">Selected: {selectedText.value.text.slice(0, 120)}</span>
+              <button
+                type="button"
+                class="shrink-0 rounded p-0.5 hover:bg-[rgb(var(--color-bg))]"
+                title="Remove selection"
+                aria-label="Remove selection"
+                onClick={() => {
+                  selectedText.value = null;
+                }}
+              >
+                <X size={12} />
+              </button>
             </div>
           )}
           {list.map((m) => (

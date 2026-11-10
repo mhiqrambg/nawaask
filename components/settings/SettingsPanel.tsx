@@ -259,19 +259,6 @@ export default function SettingsPanel() {
               }}
             />
           </label>
-          <label class="flex items-center justify-between">
-            <span>Floating selection toolbar</span>
-            <input
-              type="checkbox"
-              checked={settings.value.showFloatingToolbar}
-              onChange={(e) => {
-                void updateSettings({
-                  showFloatingToolbar: (e.currentTarget as HTMLInputElement)
-                    .checked,
-                });
-              }}
-            />
-          </label>
         </section>
 
         {/* Providers */}

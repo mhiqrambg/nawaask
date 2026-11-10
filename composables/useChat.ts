@@ -17,6 +17,7 @@ import { buildSystemPrompt } from "@/modules/prompts/system-prompts";
 import {
   promptForSelectionAction,
   fillPrompt,
+  resolveTranslationLanguage,
 } from "@/modules/prompts/templates";
 
 export const messages = signal<ChatMessage[]>([]);
@@ -36,8 +37,9 @@ export const canSend = computed(
 
 export async function fetchPageContext(): Promise<PageContextResult | null> {
   try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const activeTab = tabs[0];
+    // The side panel is its own window without tabs: target the page window.
+    const tabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    const activeTab = tabs[0] ?? (await chrome.tabs.query({ active: true }))[0];
     if (!activeTab?.id) return null;
     const response = await chrome.tabs.sendMessage(activeTab.id, {
       type: "GET_PAGE_CONTEXT",
@@ -164,13 +166,14 @@ async function generate(history: ChatMessage[], userText: string): Promise<void>
   }
 
   const settings = await loadSettings();
+  const includePage = settings.includePageContext && Boolean(pageContext.value?.mainText);
   const system = buildSystemPrompt({
-    hasPageContext: Boolean(pageContext.value?.mainText),
+    hasPageContext: includePage,
     hasSelection: Boolean(selectedText.value),
     language: settings.language,
   });
   const convMessages = toCompletionMessages(history, system);
-  if (pageContext.value?.mainText) {
+  if (includePage && pageContext.value) {
     convMessages.push({
       role: "user",
       content: `[Webpage context]\nTitle: ${pageContext.value.title}\nURL: ${pageContext.value.url}\n\n${pageContext.value.mainText}`,
@@ -270,14 +273,21 @@ export async function applySelectionAction(
 ): Promise<void> {
   if (action === "summarize-page") {
     const context = await fetchPageContext();
-    if (context) pageContext.value = context;
+    if (!context) {
+      errorMessage.value =
+        "Could not read this page. The extension cannot access this tab (e.g. system pages or the web store). Switch to a regular webpage and try again.";
+      return;
+    }
+    pageContext.value = context;
     await sendMessage("Summarize this page into concise bullet points.");
     return;
   }
   selectedText.value = { text, title, url };
   const template =
     promptTemplate ?? promptForSelectionAction(action === "custom" ? "ask" : action).template;
-  await sendMessage(fillPrompt(template, { selection: text, title, url }));
+  const settings = await loadSettings();
+  const language = resolveTranslationLanguage(settings.translationLanguage);
+  await sendMessage(fillPrompt(template, { selection: text, title, url, language }));
 }
 
 /** Consume pending action set by background (context menu / selection toolbar). */
