@@ -16,8 +16,15 @@ import { setSettingsOpen } from "@/composables/useView";
 import { settings } from "@/composables/useSettings";
 import ChatMessage from "./ChatMessage";
 import ChatInput from "./ChatInput";
-import { Plus, Settings, X } from "lucide-preact";
+import { Plus, Settings, X, Sparkles } from "lucide-preact";
 import type { JSX } from "preact";
+
+const QUICK_ACTIONS = [
+  { label: "Explain this page", prompt: "Explain the current webpage in simple terms." },
+  { label: "Summarize page", prompt: "Summarize this page into 5 key bullet points." },
+  { label: "Help me write", prompt: "Help me write. Here's what I need:\n\n" },
+  { label: "Brainstorm ideas", prompt: "Brainstorm ideas about this topic:\n\n" },
+];
 
 export default function ChatContainer() {
   const list = messages.value;
@@ -53,8 +60,24 @@ export default function ChatContainer() {
       </header>
 
       {empty ? (
-        <div class="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-8">
-          <h2 class="text-lg font-semibold">How can I help?</h2>
+        <div class="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-8">
+          <h2 class="text-center text-2xl font-semibold">What's on your mind?</h2>
+          <div class="flex flex-wrap justify-center gap-2">
+            {QUICK_ACTIONS.map((q) => (
+              <button
+                key={q.label}
+                type="button"
+                class="inline-flex items-center gap-1.5 rounded-full border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-3.5 py-1.5 text-[12.5px] text-[rgb(var(--color-fg))] transition-colors hover:border-[rgb(var(--color-accent))]"
+                onClick={() => void sendMessage(q.prompt)}
+              >
+                <Sparkles size={13} class="text-[rgb(var(--color-muted))]" aria-hidden="true" />
+                {q.label}
+              </button>
+            ))}
+          </div>
+          <p class="max-w-[300px] text-center text-[11px] leading-relaxed text-[rgb(var(--color-muted))]">
+            Chats stay on your device. Nothing is sent until you press Send.
+          </p>
         </div>
       ) : (
         <div
@@ -115,6 +138,16 @@ export default function ChatContainer() {
           {streaming.value ? " · streaming" : ""}
           {canSend.value ? "" : " (configure)"}
         </button>
+        <p class="mt-1.5 text-center text-[10px] text-[rgb(var(--color-muted))]">
+          <a
+            href="https://mibp.dev/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="hover:underline"
+          >
+            MIBP DEV
+          </a>
+        </p>
       </footer>
     </div>
   ) as JSX.Element;
