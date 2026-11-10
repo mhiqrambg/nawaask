@@ -77,7 +77,7 @@ export default function ChatContainer() {
           ref={(el) => {
             if (el && settings.value.autoScroll) el.scrollTop = el.scrollHeight;
           }}
-          class="flex flex-col overflow-y-auto px-3 py-3 gap-3"
+          class="flex flex-1 flex-col min-h-0 overflow-y-auto px-3 py-3 gap-3"
         >
           {pageContext.value && (
             <div class="flex items-center justify-between gap-2 rounded-lg border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2.5 py-2 text-[11px] text-[rgb(var(--color-muted))]">
