@@ -16,7 +16,7 @@ import {
   clearScreenshot,
   fetchPageContext,
   pageContext,
-  screenshot,
+  screenshots,
   screenshotError,
   selectedText,
   takeScreenshot,
@@ -107,7 +107,7 @@ function SelectionContextCard({ context }: { context: SelectionContext }): JSX.E
   ) as JSX.Element;
 }
 
-function ScreenshotCard({ image }: { image: ScreenshotAttachment }): JSX.Element {
+function ScreenshotCard({ image, index }: { image: ScreenshotAttachment; index: number }): JSX.Element {
   return (
     <div
       class="mb-2 flex items-center gap-2.5 rounded-xl border border-[rgb(var(--color-border))] bg-[rgb(var(--color-surface))] px-2.5 py-2"
@@ -119,7 +119,7 @@ function ScreenshotCard({ image }: { image: ScreenshotAttachment }): JSX.Element
         class="h-12 w-16 shrink-0 rounded-md border border-[rgb(var(--color-border))] object-cover"
       />
       <div class="min-w-0 flex-1">
-        <p class="text-[11.5px] leading-snug">Screenshot</p>
+        <p class="text-[11.5px] leading-snug">Screenshot {index + 1}</p>
         <p class="truncate text-[10px] text-[rgb(var(--color-muted))]">
           From {sourceLabel(image)}
         </p>
@@ -131,8 +131,8 @@ function ScreenshotCard({ image }: { image: ScreenshotAttachment }): JSX.Element
         type="button"
         class="shrink-0 rounded p-0.5 text-[rgb(var(--color-muted))] hover:bg-[rgb(var(--color-bg))]"
         title="Remove screenshot"
-        aria-label="Remove screenshot"
-        onClick={clearScreenshot}
+        aria-label={`Remove screenshot ${index + 1}`}
+        onClick={() => clearScreenshot(index)}
       >
         <X size={12} />
       </button>
@@ -173,11 +173,11 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const pillRef = useRef<HTMLButtonElement>(null);
   const selection = selectedText.value;
-  const image = screenshot.value;
+  const images = screenshots.value;
 
   useEffect(() => {
-    if (selection || image) inputRef.current?.focus();
-  }, [selection, image]);
+    if (selection || images.length > 0) inputRef.current?.focus();
+  }, [selection, images.length]);
 
   // Close dropdown on outside click or Escape.
   useEffect(() => {
@@ -215,7 +215,9 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
   return (
     <div class="relative flex flex-col">
       {selection && <SelectionContextCard context={selection} />}
-      {image && <ScreenshotCard image={image} />}
+      {images.map((img, idx) => (
+        <ScreenshotCard key={idx} image={img} index={idx} />
+      ))}
       {screenshotError.value && (
         <p class="mb-2 rounded-lg border border-red-400/40 bg-red-500/10 px-2 py-1.5 text-[11px] text-red-400">
           {screenshotError.value}
@@ -303,8 +305,8 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
           placeholder={
             streaming
               ? "Generating…"
-              : image
-                ? "Ask about this screenshot…"
+              : images.length > 0
+                ? `Ask about ${images.length === 1 ? "this screenshot" : `these ${images.length} screenshots`}…`
                 : selection
                   ? "Ask about the selected text…"
                   : "Ask NawaAsk anything…"
@@ -343,19 +345,21 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
             <button
               type="button"
               class={`rounded p-1 hover:bg-[rgb(var(--color-bg))] ${
-                image
+                images.length > 0
                   ? "text-[rgb(var(--color-accent))]"
                   : "text-[rgb(var(--color-muted))]"
               } disabled:opacity-40`}
               title={
                 capturing.value
                   ? "Selecting a region…"
-                  : image
-                    ? "Select another region"
-                    : "Select a region of the current tab"
+                  : images.length >= 10
+                    ? "Maximum 10 screenshots"
+                    : images.length > 0
+                      ? "Add another screenshot"
+                      : "Select a region of the current tab"
               }
               aria-label="Select a region of the current tab to capture"
-              disabled={streaming || capturing.value}
+              disabled={streaming || capturing.value || images.length >= 10}
               onClick={() => void takeScreenshot()}
             >
               <Camera size={17} />

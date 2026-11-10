@@ -4,8 +4,8 @@ export interface ChatMessage {
   content: string;
   /** Selected page text this user message was asked about. */
   context?: string;
-  /** Screenshot captured from the active tab when the question was sent. */
-  screenshot?: ScreenshotAttachment;
+  /** Screenshots captured from the active tab when the question was sent. */
+  screenshots?: ScreenshotAttachment[];
   createdAt: number;
   error?: string;
   model?: string;

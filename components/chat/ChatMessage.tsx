@@ -30,13 +30,14 @@ export default function ChatMessage({ message, streaming: isStreaming, onRegener
           <StreamingIndicator />
         ) : isUser ? (
           <>
-            {message.screenshot && (
+            {(message.screenshots ?? []).map((shot, i) => (
               <img
-                src={message.screenshot.dataUrl}
-                alt={`Screenshot from ${message.screenshot.title || message.screenshot.url}`}
+                key={i}
+                src={shot.dataUrl}
+                alt={`Screenshot from ${shot.title || shot.url}`}
                 class="mb-2 max-h-48 w-auto max-w-full rounded-lg border border-white/20 object-contain"
               />
-            )}
+            ))}
             <p class="whitespace-pre-wrap break-words">{message.content}</p>
           </>
         ) : (

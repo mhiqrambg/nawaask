@@ -30,9 +30,12 @@ export const conversationId = signal<string | null>(null);
 export const currentModel = signal<{ providerId: string; modelId: string } | null>(null);
 export const historyMeta = signal<ConversationMeta[]>([]);
 export const selectedText = signal<SelectionContext | null>(null);
-export const screenshot = signal<ScreenshotAttachment | null>(null);
+export const screenshots = signal<ScreenshotAttachment[]>([]);
 export const screenshotError = signal<string | null>(null);
 export const capturing = signal(false);
+
+/** Upper bound for screenshots per message. */
+const MAX_SCREENSHOTS = 10;
 
 let abortController: AbortController | null = null;
 
@@ -69,7 +72,7 @@ export async function startNewChat(): Promise<void> {
   errorMessage.value = null;
   pageContext.value = null;
   selectedText.value = null;
-  screenshot.value = null;
+  screenshots.value = [];
   screenshotError.value = null;
   conversationId.value = null;
 }
@@ -82,7 +85,7 @@ export async function loadConversation(id: string): Promise<void> {
   conversationId.value = conv.id;
   currentModel.value = { providerId: conv.providerId, modelId: conv.modelId };
   selectedText.value = null;
-  screenshot.value = null;
+  screenshots.value = [];
   screenshotError.value = null;
   pageContext.value = null;
 }
@@ -121,10 +124,14 @@ function userContent(message: ChatMessage): string | ChatContentPart[] {
   const text = message.context
     ? buildSelectionRequest(message.context, message.content)
     : message.content;
-  if (!message.screenshot) return text;
+  const shots = message.screenshots ?? [];
+  if (shots.length === 0) return text;
   return [
     { type: "text", text },
-    { type: "image_url", image_url: { url: message.screenshot.dataUrl } },
+    ...shots.map((s) => ({
+      type: "image_url" as const,
+      image_url: { url: s.dataUrl },
+    })),
   ];
 }
 
@@ -192,7 +199,7 @@ async function generate(history: ChatMessage[]): Promise<void> {
   const system = buildSystemPrompt({
     hasPageContext: includePage,
     hasSelection: Boolean(lastUser?.context),
-    hasScreenshot: Boolean(lastUser?.screenshot),
+    hasScreenshot: Boolean(lastUser?.screenshots?.length),
     language: settings.language,
   });
   const convMessages = toCompletionMessages(history, system);
@@ -256,13 +263,13 @@ export async function sendMessage(text: string): Promise<void> {
   const trimmed = text.trim();
   if (!trimmed || streaming.value) return;
   const context = selectedText.value?.text;
-  const image = screenshot.value;
+  const images = screenshots.value;
   const userMessage: ChatMessage = {
     id: crypto.randomUUID(),
     role: "user",
     content: trimmed,
     ...(context ? { context } : {}),
-    ...(image ? { screenshot: image } : {}),
+    ...(images.length > 0 ? { screenshots: images } : {}),
     createdAt: Date.now(),
   };
   const history = [...messages.value, userMessage];
@@ -270,7 +277,7 @@ export async function sendMessage(text: string): Promise<void> {
   // The context lives on the message from here on; the composer chip clears
   // so it cannot leak into later, unrelated questions.
   selectedText.value = null;
-  screenshot.value = null;
+  screenshots.value = [];
   screenshotError.value = null;
   await generate(history);
 }
@@ -295,11 +302,17 @@ export async function regenerate(): Promise<void> {
  */
 export async function takeScreenshot(): Promise<void> {
   if (capturing.value || streaming.value) return;
+  if (screenshots.value.length >= MAX_SCREENSHOTS) {
+    screenshotError.value = `Maximum ${MAX_SCREENSHOTS} screenshots. Remove one to add another.`;
+    return;
+  }
   capturing.value = true;
   screenshotError.value = null;
   try {
     const next = await captureRegionScreenshot();
-    if (next) screenshot.value = next;
+    if (next && screenshots.value.length < MAX_SCREENSHOTS) {
+      screenshots.value = [...screenshots.value, next];
+    }
   } catch (error) {
     screenshotError.value =
       error instanceof Error ? error.message : "Could not capture the selected region.";
@@ -308,8 +321,8 @@ export async function takeScreenshot(): Promise<void> {
   }
 }
 
-export function clearScreenshot(): void {
-  screenshot.value = null;
+export function clearScreenshot(index: number): void {
+  screenshots.value = screenshots.value.filter((_, i) => i !== index);
   screenshotError.value = null;
 }
 
