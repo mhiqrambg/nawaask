@@ -31,7 +31,7 @@ MODE CLOUD (only when VITE_NAWAASK_CLOUD_API_BASE_URL is set)
 - `modules/ai/` — Provider client (OpenAI-compatible + Anthropic Messages
   protocols), SSE parsers, strict error mapping (401/404/429).
 - `modules/browser/` — Typed cross-context contracts, readable-text
-  extraction, visible-tab screenshot capture + downscale.
+  extraction, region-select overlay + region screenshot capture + downscale.
 - `modules/storage/` — chrome.storage wrappers + IndexedDB conversation store.
 - `modules/prompts/` — Built-in + custom templates with `{{selection}}`,
   `{{title}}`, `{{url}}`, `{{page}}` placeholders.
@@ -65,15 +65,19 @@ cannot leak into later questions.
 Screenshot flow:
 
 ```
-camera button click → chrome.tabs.captureVisibleTab (visible viewport)
-→ OffscreenCanvas downscale to ≤1600 px JPEG → composer preview card
+camera button click → START_REGION_CAPTURE → content-script overlay:
+  dim page, drag a rectangle (Esc/right-click cancels)
+→ overlay hides and returns the CSS-pixel rect to the panel
+→ panel chrome.tabs.captureVisibleTab (visible viewport)
+→ OffscreenCanvas crop + downscale to ≤1600 px JPEG → composer preview card
 → Send attaches image_url part to that user message
 → AIClient.chatStream (OpenAI image_url / Anthropic base64 image /
   Responses input_image) → conversation persists title/URL + JPEG
 ```
 
-Capture is user-click-only, never scheduled. The image is sent only with Send
-and stays on the message, so regenerate reuses it and later questions do not.
+Capture is user-click-plus-drag only, never scheduled. The image is sent only
+with Send and stays on the message, so regenerate reuses it and later
+questions do not.
 
 ## Security boundaries
 

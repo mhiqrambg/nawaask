@@ -1,7 +1,7 @@
 # NawaAsk — Your AI, Anywhere on the Web
 
 Lightweight Chrome (MV3) AI assistant. Chat in the side panel, ask about selected
-text with a floating Ask NawaAsk pill, attach a screenshot of the visible page,
+text with a floating Ask NawaAsk pill, drag-select a region of the page to screenshot,
 summarize pages, and connect any OpenAI-compatible provider. Built with Bun +
 WXT + Preact + TypeScript. No React.
 
@@ -79,9 +79,10 @@ Chat, model fetch, and connection tests follow the protocol and API on each card
 - Select text → floating **Ask NawaAsk** pill attaches the selection to the
   composer as a removable context card (source title + URL). Nothing is sent
   until you type a question and press Send. Selecting text never calls the AI.
-- Screenshot → camera button captures the visible tab, downscales it to a
-  removable preview card, and sends it with your question to a vision-capable
-  model. Capture happens only on click; nothing leaves the browser until Send.
+- Screenshot → camera button opens a drag-to-select overlay on the page; the
+  selected region is captured, downscaled to a removable preview card, and
+  sent with your question to a vision-capable model. Capture happens only on
+  click; nothing leaves the browser until Send.
 - `Ctrl+Shift+K` / `Cmd+Shift+K` opens the panel.
 - Toolbar icon click opens the side panel directly (no popup).
 - History: IndexedDB persistence, search, pin, rename, export `.md`.
@@ -97,10 +98,11 @@ Chat, model fetch, and connection tests follow the protocol and API on each card
 - Page content is extracted only on explicit action (Ask pill click, page
   attach, "summarize this page"). Page text is treated as untrusted data:
   system prompt instructs the model not to follow instructions inside it.
-- Screenshots are captured only when you click the camera button: the visible
-  tab is downscaled to JPEG and kept in the composer until you press Send. It
-  is then sent to the configured provider and stored with the local
-  conversation. No screenshot is ever captured in the background.
+- Screenshots are captured only when you click the camera button and drag a
+  region on the page: the selected region is downscaled to JPEG and kept in
+  the composer until you press Send. It is then sent to the configured
+  provider and stored with the local conversation. No screenshot is ever
+  captured in the background.
 - Content scripts never see keys; keys never touch page DOM.
 
 ## Project layout
@@ -126,6 +128,6 @@ Content script is dependency-free DOM code (no Preact) to stay light.
 - `highlight.js/lib/common` (~40 languages) dominates the sidepanel bundle
   (~250 KB). Swap for a smaller subset if size matters.
 - Rename uses a native `prompt()` dialog (functional MVP).
-- Screenshots cover the visible viewport only (no full-page capture) and
+- Screenshots cover only the region you drag (within the visible viewport) and
   require a vision-capable model on the configured provider.
 - Firefox: `bun run build:firefox`; sidePanel API needs Firefox 142+.

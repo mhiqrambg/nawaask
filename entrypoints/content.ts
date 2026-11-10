@@ -1,5 +1,10 @@
 import { getPageContext } from "@/modules/browser/page-context";
-import type { AskAboutSelectionMessage, SelectionContext } from "@/modules/browser/messaging";
+import type {
+  AskAboutSelectionMessage,
+  RegionSelectedResponse,
+  RegionSelection,
+  SelectionContext,
+} from "@/modules/browser/messaging";
 
 /** Ignore accidental one-character selections. */
 const MIN_SELECTION_CHARS = 2;
@@ -189,6 +194,223 @@ async function attachSelection(): Promise<void> {
   }
 }
 
+/** Ignore accidental clicks; a click without a real drag cancels. */
+const MIN_REGION_SIZE = 8;
+
+let regionHost: HTMLDivElement | null = null;
+
+interface RegionRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+function nextPaint(): Promise<void> {
+  return new Promise((resolve) => {
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+  });
+}
+
+/**
+ * Dim the page and let the user drag a rectangle. The overlay hides itself
+ * before responding, so the panel's capture never sees it in the screenshot.
+ */
+function startRegionSelection(
+  sendResponse: (response: RegionSelectedResponse) => void,
+): void {
+  if (regionHost) {
+    sendResponse({ ok: false, cancelled: true });
+    return;
+  }
+
+  hidePill();
+
+  const el = document.createElement("div");
+  el.id = "nawaask-region-host";
+  el.style.cssText =
+    "all:initial;position:fixed;inset:0;z-index:2147483647;display:block;";
+  const root = el.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <style>
+      :host { all: initial; }
+      .layer {
+        position: fixed; inset: 0;
+        background: rgba(0, 0, 0, 0.32);
+        cursor: crosshair;
+      }
+      .layer.dragging { background: transparent; }
+      .box {
+        position: fixed;
+        border: 1.5px solid #60a5fa;
+        background: rgba(96, 165, 250, 0.12);
+        box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.45);
+        pointer-events: none;
+      }
+      .box[hidden], .size[hidden] { display: none; }
+      .size {
+        position: fixed;
+        padding: 4px 7px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 6px;
+        background: #18181b;
+        color: #fafafa;
+        font: 500 12px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        font-variant-numeric: tabular-nums;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+      .hint {
+        position: fixed; top: 16px; left: 50%; transform: translateX(-50%);
+        padding: 9px 14px;
+        border: 1px solid rgba(255, 255, 255, 0.14);
+        border-radius: 999px;
+        background: #18181b;
+        color: #fafafa;
+        font: 500 12px/1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+        pointer-events: none;
+        white-space: nowrap;
+      }
+    </style>
+    <div class="layer">
+      <div class="box" hidden></div>
+      <div class="size" hidden></div>
+    </div>
+    <div class="hint">Drag to select an area · Esc to cancel</div>`;
+
+  const layer = root.querySelector<HTMLElement>(".layer");
+  const box = root.querySelector<HTMLElement>(".box");
+  const size = root.querySelector<HTMLElement>(".size");
+  if (!layer || !box || !size) {
+    sendResponse({ ok: false, cancelled: true });
+    return;
+  }
+
+  regionHost = el;
+  (document.documentElement ?? document.body).appendChild(el);
+
+  let responded = false;
+  let settled = false;
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let rect: RegionRect = { x: 0, y: 0, width: 0, height: 0 };
+
+  const respond = (response: RegionSelectedResponse): void => {
+    if (responded) return;
+    responded = true;
+    el.remove();
+    if (regionHost === el) regionHost = null;
+    window.removeEventListener("keydown", onKeyDown, true);
+    sendResponse(response);
+  };
+
+  const cancel = (): void => {
+    if (settled) return;
+    settled = true;
+    respond({ ok: false, cancelled: true });
+  };
+
+  const paint = (): void => {
+    box.style.left = `${rect.x}px`;
+    box.style.top = `${rect.y}px`;
+    box.style.width = `${rect.width}px`;
+    box.style.height = `${rect.height}px`;
+    size.textContent = `${Math.round(rect.width)} × ${Math.round(rect.height)}`;
+    size.style.left = `${Math.max(8, rect.x)}px`;
+    size.style.top =
+      rect.y > 30
+        ? `${rect.y - 26}px`
+        : `${Math.min(window.innerHeight - 28, rect.y + rect.height + 8)}px`;
+  };
+
+  const finish = async (): Promise<void> => {
+    settled = true;
+    // Hide first and let the page repaint, so the panel's capture
+    // (which runs after this response arrives) never sees the overlay.
+    el.style.display = "none";
+    await nextPaint();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    respond({
+      ok: true,
+      region: {
+        ...rect,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        title: document.title,
+        url: location.href,
+      },
+    });
+  };
+
+  const onKeyDown = (event: KeyboardEvent): void => {
+    if (event.key !== "Escape") return;
+    event.preventDefault();
+    event.stopPropagation();
+    cancel();
+  };
+
+  el.addEventListener("pointerdown", (event) => {
+    if (settled || event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    dragging = true;
+    startX = event.clientX;
+    startY = event.clientY;
+    rect = { x: startX, y: startY, width: 0, height: 0 };
+    layer.classList.add("dragging");
+    box.hidden = false;
+    size.hidden = false;
+    paint();
+    try {
+      el.setPointerCapture(event.pointerId);
+    } catch {
+      // pointer capture is best-effort
+    }
+  });
+
+  el.addEventListener("pointermove", (event) => {
+    if (!dragging || settled) return;
+    event.preventDefault();
+    event.stopPropagation();
+    const right = Math.min(window.innerWidth, Math.max(startX, event.clientX));
+    const bottom = Math.min(window.innerHeight, Math.max(startY, event.clientY));
+    const left = Math.max(0, Math.min(startX, event.clientX));
+    const top = Math.max(0, Math.min(startY, event.clientY));
+    rect = { x: left, y: top, width: right - left, height: bottom - top };
+    paint();
+  });
+
+  el.addEventListener("pointerup", (event) => {
+    if (!dragging || settled) return;
+    event.preventDefault();
+    event.stopPropagation();
+    dragging = false;
+    if (rect.width < MIN_REGION_SIZE || rect.height < MIN_REGION_SIZE) {
+      cancel();
+      return;
+    }
+    void finish();
+  });
+
+  el.addEventListener("pointercancel", cancel);
+  el.addEventListener("contextmenu", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    cancel();
+  });
+  el.addEventListener(
+    "wheel",
+    (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+    },
+    { passive: false },
+  );
+  window.addEventListener("keydown", onKeyDown, true);
+}
+
 let settleTimer: number | undefined;
 
 function scheduleSync(): void {
@@ -236,6 +458,10 @@ export default defineContentScript({
       if (message?.type === "GET_PAGE_CONTEXT") {
         const context = getPageContext(document);
         sendResponse({ type: "PAGE_CONTEXT_RESULT", payload: context });
+        return true;
+      }
+      if (message?.type === "START_REGION_CAPTURE") {
+        startRegionSelection(sendResponse);
         return true;
       }
       return false;

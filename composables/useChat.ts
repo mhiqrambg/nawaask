@@ -19,7 +19,7 @@ import { loadSettings } from "@/modules/storage/settings";
 import { loadProviders } from "@/modules/storage/providers";
 import type { PageContextResult, SelectionContext } from "@/modules/browser/messaging";
 import { SELECTION_STORAGE_KEY } from "@/modules/browser/messaging";
-import { captureVisibleScreenshot } from "@/modules/browser/screenshot";
+import { captureRegionScreenshot } from "@/modules/browser/screenshot";
 import { buildSystemPrompt } from "@/modules/prompts/system-prompts";
 
 export const messages = signal<ChatMessage[]>([]);
@@ -289,16 +289,20 @@ export async function regenerate(): Promise<void> {
   await generate(history);
 }
 
-/** Capture the visible tab into the composer. Never sends a request. */
+/**
+ * Let the user drag a region on the page, then show it in the composer.
+ * Never sends a request.
+ */
 export async function takeScreenshot(): Promise<void> {
   if (capturing.value || streaming.value) return;
   capturing.value = true;
   screenshotError.value = null;
   try {
-    screenshot.value = await captureVisibleScreenshot();
+    const next = await captureRegionScreenshot();
+    if (next) screenshot.value = next;
   } catch (error) {
     screenshotError.value =
-      error instanceof Error ? error.message : "Could not capture the current tab.";
+      error instanceof Error ? error.message : "Could not capture the selected region.";
   } finally {
     capturing.value = false;
   }

@@ -166,12 +166,12 @@ export default function ChatInput({ onSend, onStop, streaming }: Props) {
           } disabled:opacity-40`}
           title={
             capturing.value
-              ? "Capturing…"
+              ? "Selecting a region…"
               : image
-                ? "Retake screenshot"
-                : "Take screenshot of the current tab"
+                ? "Select another region"
+                : "Select a region of the current tab"
           }
-          aria-label="Take screenshot of the current tab"
+          aria-label="Select a region of the current tab to capture"
           disabled={streaming || capturing.value}
           onClick={() => void takeScreenshot()}
         >
