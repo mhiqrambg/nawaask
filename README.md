@@ -83,6 +83,7 @@ Chat, model fetch, and connection tests follow the protocol and API on each card
   removable preview card, and sends it with your question to a vision-capable
   model. Capture happens only on click; nothing leaves the browser until Send.
 - `Ctrl+Shift+K` / `Cmd+Shift+K` opens the panel.
+- Toolbar icon click opens the side panel directly (no popup).
 - History: IndexedDB persistence, search, pin, rename, export `.md`.
 - Prompt library: 11 built-ins + custom templates
   (`{{selection}}`, `{{title}}`, `{{url}}`, `{{page}}`).
@@ -107,7 +108,7 @@ Chat, model fetch, and connection tests follow the protocol and API on each card
 ```
 entrypoints/  background.ts (side panel, selection relay, commands)
               content.ts (Ask NawaAsk pill, page extraction)
-              sidepanel/ options/ popup/
+              sidepanel/ options/
 components/   chat/ sidebar/ providers/ history/ options/ settings/ ui/
 composables/  useChat / useProviders / useSettings / usePrompts /
               useView / useModelSelector (Preact signals)

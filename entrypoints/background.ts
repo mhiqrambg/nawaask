@@ -5,6 +5,18 @@ import { SELECTION_STORAGE_KEY } from "@/modules/browser/messaging";
 const panelPorts = new Set<chrome.runtime.Port>();
 
 export default defineBackground(() => {
+  // Toolbar clicks open the side panel directly (no popup in between).
+  // Guarded: the sidePanel API may be absent on older browsers.
+  try {
+    void chrome.sidePanel
+      ?.setPanelBehavior({ openPanelOnActionClick: true })
+      .catch(() => {
+        // side panel unavailable; ignore
+      });
+  } catch {
+    // sidePanel namespace missing; ignore
+  }
+
   chrome.runtime.onConnect.addListener((port) => {
     if (port.name !== "nawaask-panel") return;
     panelPorts.add(port);

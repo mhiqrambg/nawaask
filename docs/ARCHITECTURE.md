@@ -13,7 +13,7 @@ NawaAsk runs in one of two modes (`NawaAskMode` in `modules/cloud/types.ts`):
 
 ```
 MODE BYOK (default, always available)
-  sidepanel/popup/options → modules/ai/client.ts → user provider (/chat/completions, SSE)
+  sidepanel/options → modules/ai/client.ts → user provider (/chat/completions, SSE)
   storage: IndexedDB (conversations) + chrome.storage (settings/providers/prompts)
 
 MODE CLOUD (only when VITE_NAWAASK_CLOUD_API_BASE_URL is set)
@@ -24,8 +24,8 @@ MODE CLOUD (only when VITE_NAWAASK_CLOUD_API_BASE_URL is set)
 ## Extension layers
 
 - `entrypoints/` — MV3 shell: background (side panel, selection relay,
-  commands), content (dependency-free Ask pill + page extraction),
-  sidepanel/options/popup.
+  action click opens the panel, commands), content (dependency-free Ask pill
+  + page extraction), sidepanel/options.
 - `composables/` — Preact-signal state: useChat, useProviders, useSettings,
   usePrompts, useView, useModelSelector.
 - `modules/ai/` — Provider client (OpenAI-compatible + Anthropic Messages
