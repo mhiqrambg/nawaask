@@ -9,6 +9,9 @@ lerna-debug.log*
 
 node_modules
 .output
+.env
+.env.*
+!.env.example
 stats.html
 stats-*.json
 .wxt
