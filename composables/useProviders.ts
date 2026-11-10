@@ -31,6 +31,34 @@ async function readDefaults(): Promise<void> {
       defaultModelId.value = s.defaultModelId;
     }
   }
+  // Drop defaults pointing at providers/models that no longer exist
+  // (e.g. purged legacy presets) so the UI never shows a stale model.
+  const provider = providers.value.find((p) => p.id === defaultProviderId.value);
+  if (defaultProviderId.value && !provider) {
+    defaultProviderId.value = "";
+    defaultModelId.value = "";
+    await persistDefaults();
+  } else if (
+    provider &&
+    defaultModelId.value &&
+    !provider.models.some((m) => m.id === defaultModelId.value)
+  ) {
+    defaultModelId.value = "";
+    await persistDefaults();
+  }
+}
+
+async function persistDefaults(): Promise<void> {
+  const stored = await chrome.storage.local.get("nawa:settings");
+  const s: unknown = stored["nawa:settings"];
+  const base = s && typeof s === "object" ? s : {};
+  await chrome.storage.local.set({
+    "nawa:settings": {
+      ...base,
+      defaultProviderId: defaultProviderId.value,
+      defaultModelId: defaultModelId.value,
+    },
+  });
 }
 
 export async function updateProvider(updated: AIProvider): Promise<void> {
